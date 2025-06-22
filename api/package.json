@@ -1,0 +1,38 @@
+{
+  "name": "prima-api",
+  "version": "1.0.0",
+  "description": "API untuk data wilayah Indonesia",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "migrate": "prisma migrate dev",
+    "import-data": "node src/utils/import-data.js",
+    "generate": "prisma generate",
+    "studio": "prisma studio",
+    "test": "jest",
+    "lint": "eslint .",
+    "build": "prisma generate"
+  },
+  "keywords": [
+    "api",
+    "wilayah",
+    "indonesia"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^4.16.2",
+    "cors": "^2.8.5",
+    "csv-parser": "^3.2.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "prisma": "^4.16.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0",
+    "jest": "^29.7.0",
+    "eslint": "^8.56.0",
+    "supertest": "^6.3.4"
+  }
+}

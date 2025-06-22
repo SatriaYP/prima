@@ -1,0 +1,81 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "admin_dpp",
+      "email": "admin@prima.id",
+      "password": "password123",
+      "role": "admin",
+      "level": "DPP",
+      "region_code": "00",
+      "unit_kepengurusan_id": 1,
+      "is_active": true
+    },
+    {
+      "id": 2,
+      "username": "sekjend_viewer",
+      "email": "sekjend@prima.id",
+      "password": "password123",
+      "role": "viewer",
+      "level": "DPP",
+      "region_code": "00",
+      "unit_kepengurusan_id": 1,
+      "is_active": true
+    },
+    {
+      "id": 3,
+      "username": "admin_dpw",
+      "email": "dpw@prima.id",
+      "password": "password123",
+      "role": "admin",
+      "level": "DPW",
+      "region_code": "31",
+      "unit_kepengurusan_id": 2,
+      "is_active": true
+    },
+    {
+      "id": 4,
+      "username": "operator_dpk",
+      "email": "dpk@prima.id",
+      "password": "password123",
+      "role": "operator",
+      "level": "DPK",
+      "region_code": "3171",
+      "unit_kepengurusan_id": 4,
+      "is_active": true
+    },
+    {
+      "id": 5,
+      "username": "operator_dpd",
+      "email": "dpd@prima.id",
+      "password": "password123",
+      "role": "operator",
+      "level": "DPD",
+      "region_code": "3171",
+      "unit_kepengurusan_id": 3,
+      "is_active": true
+    },
+    {
+      "id": 6,
+      "username": "sekjen_dpp",
+      "email": "sekjen_dpp@prima.id",
+      "password": "password123",
+      "role": "viewer",
+      "level": "DPP",
+      "region_code": "00",
+      "unit_kepengurusan_id": 1,
+      "is_active": true
+    },
+    {
+      "id": 7,
+      "username": "user_viewer",
+      "email": "user_viewer@prima.id",
+      "password": "password123",
+      "role": "viewer",
+      "level": "DPP",
+      "region_code": "00",
+      "unit_kepengurusan_id": 1,
+      "is_active": true
+    }
+  ]
+}

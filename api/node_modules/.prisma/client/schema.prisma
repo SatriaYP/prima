@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Model untuk data wilayah Indonesia
+model Province {
+  id        String    @id
+  name      String
+  code      String
+  regencies Regency[]
+
+  @@map("provinces")
+}
+
+model Regency {
+  id         String     @id
+  provinceId String
+  name       String
+  code       String
+  province   Province   @relation(fields: [provinceId], references: [id])
+  districts  District[]
+
+  @@map("regencies")
+}
+
+model District {
+  id        String    @id
+  regencyId String
+  name      String
+  code      String
+  regency   Regency   @relation(fields: [regencyId], references: [id])
+  villages  Village[]
+
+  @@map("districts")
+}
+
+model Village {
+  id         String   @id
+  districtId String
+  name       String
+  code       String
+  district   District @relation(fields: [districtId], references: [id])
+
+  @@map("villages")
+}
