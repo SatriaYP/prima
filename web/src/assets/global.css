@@ -1,0 +1,75 @@
+/* Global Styles for PRIMA Web App */
+:root {
+  --primary: #0057B8;
+  --primary-dark: #003e87;
+  --accent: #E74C3C;
+  --bg-main: #f7fafd;
+  --bg-card: #fff;
+  --text-main: #212529;
+  --text-muted: #6c757d;
+  --radius: 14px;
+  --shadow: 0 4px 24px rgba(0,87,184,0.08), 0 1.5px 4px rgba(0,0,0,0.07);
+  --sidebar-width: 220px;
+  --sidebar-width-collapsed: 60px;
+  --transition: 0.22s cubic-bezier(0.4,0,0.2,1);
+}
+
+html, body {
+  font-family: 'Inter', 'Roboto', Arial, sans-serif;
+  background: var(--bg-main);
+  color: var(--text-main);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5 {
+  color: var(--primary);
+  margin-bottom: 0.3em;
+  font-weight: 700;
+}
+
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 28px 24px;
+  margin-bottom: 24px;
+}
+
+.btn {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 22px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn:hover {
+  background: var(--primary-dark);
+}
+
+input, select, textarea {
+  border-radius: 8px;
+  border: 1.5px solid #d0d7e2;
+  padding: 10px 14px;
+  font-size: 1rem;
+  outline: none;
+  margin-bottom: 12px;
+  transition: border var(--transition);
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--primary);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  background: #e6ecf3;
+}
+::-webkit-scrollbar-thumb {
+  background: #c9d6ee;
+  border-radius: 8px;
+}

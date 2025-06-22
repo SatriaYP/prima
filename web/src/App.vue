@@ -1,17 +1,26 @@
 <template>
-  <img alt="Vue logo" src="./assets/logo.png">
-  <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <component :is="layoutComponent" />
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
+import MainLayout from './layouts/MainLayout.vue';
+import LoginView from './views/LoginView.vue';
+import './assets/global.css';
 
 export default {
   name: 'App',
-  components: {
-    HelloWorld
+  components: { MainLayout, LoginView },
+  setup() {
+    const route = useRoute();
+    // Tampilkan MainLayout untuk semua halaman kecuali login
+    const layoutComponent = computed(() => {
+      return route.name === 'Login' ? LoginView : MainLayout;
+    });
+    return { layoutComponent };
   }
-}
+};
 </script>
 
 <style>
