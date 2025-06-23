@@ -2,12 +2,14 @@
   <div class="member-detail-container" v-if="member">
     <h1>Detail Anggota</h1>
     <table>
-      <tr><th>Nama</th><td>{{ member.name }}</td></tr>
-      <tr><th>Email</th><td>{{ member.email }}</td></tr>
-      <tr><th>No. KTP</th><td>{{ member.ktp }}</td></tr>
-      <tr><th>Alamat</th><td>{{ member.address }}</td></tr>
-      <tr><th>Telepon</th><td>{{ member.phone }}</td></tr>
-      <!-- Tambahkan field lain sesuai kebutuhan -->
+      <tbody>
+        <tr><th>Nama</th><td>{{ member.name }}</td></tr>
+        <tr><th>Email</th><td>{{ member.email }}</td></tr>
+        <tr><th>No. KTP</th><td>{{ member.ktp }}</td></tr>
+        <tr><th>Alamat</th><td>{{ member.address }}</td></tr>
+        <tr><th>Telepon</th><td>{{ member.phone }}</td></tr>
+        <!-- Tambahkan field lain sesuai kebutuhan -->
+      </tbody>
     </table>
     <button @click="$router.push('/members')">Kembali</button>
     <button @click="editMember">Edit</button>

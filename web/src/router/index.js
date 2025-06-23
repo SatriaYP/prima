@@ -7,6 +7,7 @@ import MemberFormView from '../views/MemberFormView.vue';
 import PengurusListView from '../views/PengurusListView.vue';
 import PengurusDetailView from '../views/PengurusDetailView.vue';
 import PengurusFormView from '../views/PengurusFormView.vue';
+import KepengurusanView from '../views/KepengurusanView.vue';
 
 const routes = [
   {
@@ -59,6 +60,11 @@ const routes = [
     name: 'PengurusEdit',
     component: PengurusFormView
   },
+  {
+    path: '/kepengurusan',
+    name: 'Kepengurusan',
+    component: KepengurusanView
+  }
 ];
 
 const router = createRouter({

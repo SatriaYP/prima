@@ -12,6 +12,7 @@
           <li><router-link to="/dashboard"><span>Dashboard</span></router-link></li>
           <li><router-link to="/members"><span>Anggota</span></router-link></li>
           <li><router-link to="/pengurus"><span>Pengurus</span></router-link></li>
+          <li><router-link to="/kepengurusan"><span>🌳 Kepengurusan</span></router-link></li>
         </ul>
       </nav>
     </aside>

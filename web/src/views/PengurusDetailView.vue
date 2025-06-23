@@ -2,12 +2,14 @@
   <div class="pengurus-detail-container" v-if="pengurus">
     <h1>Detail Pengurus</h1>
     <table>
-      <tr><th>Nama</th><td>{{ pengurus.name }}</td></tr>
-      <tr><th>Jabatan</th><td>{{ pengurus.position }}</td></tr>
-      <tr><th>Wilayah</th><td>{{ pengurus.region }}</td></tr>
-      <tr><th>Email</th><td>{{ pengurus.email }}</td></tr>
-      <tr><th>Telepon</th><td>{{ pengurus.phone }}</td></tr>
-      <!-- Tambahkan field lain sesuai kebutuhan -->
+      <tbody>
+        <tr><th>Nama</th><td>{{ pengurus.name }}</td></tr>
+        <tr><th>Jabatan</th><td>{{ pengurus.position }}</td></tr>
+        <tr><th>Wilayah</th><td>{{ pengurus.region }}</td></tr>
+        <tr><th>Email</th><td>{{ pengurus.email }}</td></tr>
+        <tr><th>Telepon</th><td>{{ pengurus.phone }}</td></tr>
+        <!-- Tambahkan field lain sesuai kebutuhan -->
+      </tbody>
     </table>
     <button @click="$router.push('/pengurus')">Kembali</button>
     <button @click="editPengurus">Edit</button>
