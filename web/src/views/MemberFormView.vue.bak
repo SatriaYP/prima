@@ -1,0 +1,563 @@
+<template>
+  <div class="member-form-container">
+    <h1>{{ isEdit ? 'Edit Anggota' : 'Tambah Anggota' }}</h1>
+    
+    <!-- Step Indicator -->
+    <div class="step-indicator">
+      <div 
+        v-for="(stepName, index) in ['Upload KTP & Data Diri', 'Wilayah Pendaftaran', 'Cetak KTA']"
+        :key="index"
+        :class="['step', { 'active': currentStep === index, 'completed': currentStep > index }]"
+        @click="goToStep(index)"
+      >
+        <div class="step-number">{{ index }}</div>
+        <div class="step-name">{{ stepName }}</div>
+      </div>
+    </div>
+    
+    <form @submit.prevent="handleSubmit">
+      <div class="form-group ktp-upload-block">
+        <label>Upload Foto KTP</label>
+        <input type="file" @change="handleFileUpload" accept="image/*" ref="ktpInput" />
+        
+        <!-- Preview KTP -->
+        <div v-if="form.fotoKtpUrl || form.fotoKtpProcessedUrl" class="ktp-upload-preview-container">
+          <!-- Original vs Processed Images -->
+          <div class="ktp-images-comparison" v-if="form.fotoKtpUrl && form.fotoKtpProcessedUrl">
+            <div class="ktp-image-container">
+              <h4>Gambar Original</h4>
+              <img :src="form.fotoKtpUrl" alt="Foto KTP Original" class="ktp-preview" />
+            </div>
+            <div class="ktp-image-container">
+              <h4>Gambar Hasil Processing</h4>
+              <img :src="form.fotoKtpProcessedUrl" alt="KTP hasil preprocessing" class="ktp-preview processed" />
+              <button type="button" class="btn btn-blue btn-sm" @click="downloadProcessedImage">Download Gambar</button>
+            </div>
+          </div>
+          
+          <!-- Single Image (Original only) -->
+          <div v-else-if="form.fotoKtpUrl" class="ktp-image-container">
+            <h4>Gambar KTP</h4>
+            <img :src="form.fotoKtpUrl" alt="Foto KTP" class="ktp-preview" />
+          </div>
+          
+          <button type="button" class="btn btn-grey" @click="resetKtpUpload">Ulangi Upload</button>
+        </div>
+        
+        <button v-if="form.fotoKtp && !ocrLoading" type="button" class="btn btn-blue" @click="prosesKtpOcr">Proses & Isi Otomatis</button>
+        <div v-if="ocrLoading" class="ocr-loading">Memproses KTP... Mohon tunggu.</div>
+        <div v-if="ocrError" class="ocr-error">{{ ocrError }}</div>
+        
+        <!-- OCR Result Debug -->
+        <div v-if="ocrResult" class="ocr-result-debug">
+          <details>
+            <summary>Hasil Ekstraksi OCR (debug)</summary>
+            <pre>{{ ocrResult }}</pre>
+          </details>
+        </div>
+        
+        <div class="ktp-upload-desc">Upload foto KTP yang jelas untuk mengisi data otomatis. Anda dapat mengedit data hasil ekstraksi jika perlu.</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>NIK</label>
+          <input v-model="form.nik" maxlength="16" required />
+        </div>
+        <div class="form-group">
+          <label>Nama</label>
+          <input v-model="form.nama" required />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Tempat Lahir</label>
+          <input v-model="form.tempatLahir" required />
+        </div>
+        <div class="form-group">
+          <label>Tanggal Lahir</label>
+          <input v-model="form.tanggalLahir" type="date" required />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Jenis Kelamin</label>
+          <select v-model="form.jenisKelamin" required>
+            <option value="">Pilih</option>
+            <option value="Laki-laki">Laki-laki</option>
+            <option value="Perempuan">Perempuan</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status Perkawinan</label>
+          <select v-model="form.statusPerkawinan" required>
+            <option value="">Pilih</option>
+            <option value="Belum Kawin">Belum Kawin</option>
+            <option value="Kawin">Kawin</option>
+            <option value="Cerai">Cerai</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Status Pekerjaan</label>
+          <input v-model="form.statusPekerjaan" />
+        </div>
+        <div class="form-group">
+          <label>Minat/Bakat</label>
+          <input v-model="form.minatBakat" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Alamat</label>
+        <input v-model="form.alamat" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Provinsi</label>
+          <select v-model="form.provinsiId" @change="fetchKabupaten" required>
+            <option value="">Pilih Provinsi</option>
+            <option v-for="p in provinsiList" :value="p.id" :key="p.id">{{ p.name }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Kabupaten/Kota</label>
+          <select v-model="form.kabupatenId" @change="fetchKecamatan" :disabled="!kabupatenList.length" required>
+            <option value="">Pilih Kabupaten/Kota</option>
+            <option v-for="k in kabupatenList" :value="k.id" :key="k.id">{{ k.name }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Kecamatan</label>
+          <select v-model="form.kecamatanId" @change="fetchKelurahan" :disabled="!kecamatanList.length" required>
+            <option value="">Pilih Kecamatan</option>
+            <option v-for="k in kecamatanList" :value="k.id" :key="k.id">{{ k.name }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Kelurahan/Desa</label>
+          <select v-model="form.kelurahanId" :disabled="!kelurahanList.length" required>
+            <option value="">Pilih Kelurahan/Desa</option>
+            <option v-for="k in kelurahanList" :value="k.id" :key="k.id">{{ k.name }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>No. KTA</label>
+          <input v-model="form.noKta" readonly />
+        </div>
+        <div class="form-group">
+          <label>Penerbit KTA</label>
+          <input v-model="form.penerbitKta" readonly />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Upload Foto KTP</label>
+        <input type="file" @change="handleFileUpload" accept="image/*" />
+        <div v-if="form.fotoKtpUrl">
+          <img :src="form.fotoKtpUrl" alt="Foto KTP" class="ktp-preview" />
+        </div>
+      </div>
+      <div class="form-group form-checkbox">
+        <input type="checkbox" v-model="form.isConfirmed" id="isConfirmed" required />
+        <label for="isConfirmed">Saya menyatakan data di atas benar</label>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-green">{{ isEdit ? 'Simpan Perubahan' : 'Tambah Anggota' }}</button>
+        <button type="button" class="btn" @click="$router.push('/members')">Batal</button>
+      </div>
+      <div v-if="error" class="error">{{ error }}</div>
+    </form>
+  </div>
+</template>
+
+<script>
+import api from '../services/api';
+
+export default {
+  name: 'MemberFormView',
+  data() {
+    return {
+      isEdit: !!this.$route.params.id,
+      form: {
+        nik: '',
+        nama: '',
+        tempatLahir: '',
+        tanggalLahir: '',
+        jenisKelamin: '',
+        statusPerkawinan: '',
+        statusPekerjaan: '',
+        minatBakat: '',
+        alamat: '',
+        provinsiId: '',
+        kabupatenId: '',
+        kecamatanId: '',
+        kelurahanId: '',
+        noKta: '',
+        penerbitKta: 'DPP',
+        fotoKtp: null,
+        fotoKtpUrl: '',
+        fotoKtpProcessedUrl: '',
+        isConfirmed: false
+      },
+      provinsiList: [],
+      kabupatenList: [],
+      kecamatanList: [],
+      kelurahanList: [],
+      ocrLoading: false,
+      ocrError: '',
+      ocrResult: null,
+      error: ''
+    };
+  },
+  watch: {
+    'form.provinsiId'(val) { if (val) this.fetchKabupaten(); },
+    'form.kabupatenId'(val) { if (val) this.fetchKecamatan(); },
+    'form.kecamatanId'(val) { if (val) this.fetchKelurahan(); },
+    'form.kelurahanId'() { this.generateKta(); }
+  },
+  mounted() {
+    if (this.$route.params.id) {
+      this.isEdit = true;
+      this.fetchMember();
+    }
+    this.fetchProvinsi();
+  },
+  methods: {
+    async fetchMember() {
+      try {
+        const res = await api.get(`/members/${this.$route.params.id}`);
+        this.form = { ...this.form, ...res.data };
+      } catch (err) {
+        this.error = 'Gagal memuat data anggota';
+      }
+    },
+    async fetchProvinsi() {
+      try {
+        const res = await api.get('/regions/provinces');
+        this.provinsiList = res.data;
+      } catch (e) { /* no-op */ }
+    },
+    async fetchKabupaten() {
+      this.form.kabupatenId = '';
+      this.form.kecamatanId = '';
+      this.form.kelurahanId = '';
+      this.kabupatenList = [];
+      this.kecamatanList = [];
+      this.kelurahanList = [];
+      if (!this.form.provinsiId) return;
+      try {
+        const res = await api.get(`/regions/regencies?provinceId=${this.form.provinsiId}`);
+        this.kabupatenList = res.data;
+      } catch (e) { /* no-op */ }
+    },
+    async fetchKecamatan() {
+      this.form.kecamatanId = '';
+      this.form.kelurahanId = '';
+      this.kecamatanList = [];
+      this.kelurahanList = [];
+      if (!this.form.kabupatenId) return;
+      try {
+        const res = await api.get(`/regions/districts?regencyId=${this.form.kabupatenId}`);
+        this.kecamatanList = res.data;
+      } catch (e) { /* no-op */ }
+    },
+    async fetchKelurahan() {
+      this.form.kelurahanId = '';
+      this.kelurahanList = [];
+      if (!this.form.kecamatanId) return;
+      try {
+        const res = await api.get(`/regions/villages?districtId=${this.form.kecamatanId}`);
+        this.kelurahanList = res.data;
+      } catch (e) { /* no-op */ }
+    },
+    generateKta() {
+      // Dummy KTA: <prov><kab><kec>0001
+      if (!this.form.provinsiId || !this.form.kabupatenId || !this.form.kecamatanId || !this.form.kelurahanId) {
+        this.form.noKta = '';
+        return;
+      }
+      const prov = this.form.provinsiId.slice(0,2);
+      const kab = this.form.kabupatenId.slice(2,4);
+      const kec = this.form.kecamatanId.slice(4,6);
+      this.form.noKta = `${prov}${kab}${kec}0001`;
+    },
+    handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (file) {
+        this.form.fotoKtp = file;
+        this.form.fotoKtpUrl = URL.createObjectURL(file);
+        this.ocrResult = null;
+        this.ocrError = '';
+      }
+    },
+    resetKtpUpload() {
+      this.form.fotoKtp = null;
+      this.form.fotoKtpUrl = '';
+      this.form.fotoKtpProcessedUrl = '';
+      this.ocrResult = null;
+      this.ocrError = '';
+      if (this.$refs && this.$refs.ktpInput) this.$refs.ktpInput.value = '';
+    },
+    
+    downloadProcessedImage() {
+      if (!this.form.fotoKtpProcessedUrl) return;
+      
+      // Membuat anchor element untuk download
+      const a = document.createElement('a');
+      a.href = this.form.fotoKtpProcessedUrl;
+      a.download = 'ktp_processed_' + new Date().getTime() + '.jpg';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    },
+    async prosesKtpOcr() {
+      if (!this.form.fotoKtp) return;
+      this.ocrLoading = true;
+      this.ocrError = '';
+      this.ocrResult = null;
+      try {
+        const formData = new FormData();
+        // Menggunakan nama field 'image' agar sesuai dengan konfigurasi backend dan API OCR eksternal
+        formData.append('image', this.form.fotoKtp);
+        // Ganti URL berikut dengan endpoint OCR backend Anda
+        const res = await api.post('/ktp-ocr', formData, { headers: { 'Content-Type': 'multipart/form-data' }});
+        // Asumsi response: { data: {...}, processed_image_url: '...' }
+        if (res.data) {
+          // Tampilkan hasil OCR JSON
+          this.ocrResult = JSON.stringify(res.data.data || res.data, null, 2);
+          // Preview gambar hasil preprocessing
+          if (res.data.processed_image_url) {
+            this.form.fotoKtpProcessedUrl = res.data.processed_image_url;
+          }
+          
+          // Autofill field dari hasil OCR
+          const ocr = res.data.data || res.data;
+          
+          // NIK
+          if (ocr.nik) {
+            this.form.nik = ocr.nik;
+            
+            // Ekstrak kode provinsi dan kabupaten dari NIK
+            if (ocr.nik.length === 16) {
+              const provCode = ocr.nik.substring(0, 2);
+              const kabCode = ocr.nik.substring(0, 4);
+              
+              // Auto-select provinsi berdasarkan kode
+              const matchingProv = this.provinsiList.find(p => p.id.startsWith(provCode));
+              if (matchingProv) {
+                this.form.provinsiId = matchingProv.id;
+                // Fetch kabupaten setelah provinsi dipilih
+                await this.fetchKabupaten();
+                
+                // Auto-select kabupaten berdasarkan kode
+                const matchingKab = this.kabupatenList.find(k => k.id === kabCode);
+                if (matchingKab) {
+                  this.form.kabupatenId = matchingKab.id;
+                  // Fetch kecamatan setelah kabupaten dipilih
+                  await this.fetchKecamatan();
+                }
+              }
+            }
+          }
+          
+          // Nama
+          if (ocr.nama) this.form.nama = ocr.nama;
+          
+          // Alamat
+          if (ocr.alamat) this.form.alamat = ocr.alamat;
+          
+          // TTL (Tempat Tanggal Lahir)
+          if (ocr.ttl) {
+            // Format TTL biasanya: "BEKASI, 26-10-2003" atau "BEKASI.26-10-2003"
+            const ttlParts = ocr.ttl.split(/[,.-]/);
+            if (ttlParts.length >= 1) {
+              // Ambil bagian pertama sebagai tempat lahir
+              const tempatLahir = ttlParts[0].trim();
+              if (tempatLahir && tempatLahir !== '-') {
+                this.form.tempatLahir = tempatLahir;
+              }
+              
+              // Coba ekstrak tanggal lahir
+              if (ttlParts.length >= 4) {
+                const day = ttlParts[1].trim().padStart(2, '0');
+                const month = ttlParts[2].trim().padStart(2, '0');
+                const year = ttlParts[3].trim();
+                if (day && month && year && year.length === 4) {
+                  this.form.tanggalLahir = `${year}-${month}-${day}`;
+                }
+              }
+            }
+          }
+          
+          // Jenis Kelamin
+          if (ocr.kelamin) {
+            const kelamin = ocr.kelamin.toUpperCase();
+            if (kelamin.includes('LAKI')) {
+              this.form.jenisKelamin = 'Laki-laki';
+            } else if (kelamin.includes('PEREMPUAN') || kelamin.includes('WANITA')) {
+              this.form.jenisKelamin = 'Perempuan';
+            }
+          }
+          
+          // Status Perkawinan
+          if (ocr.kawin) {
+            const kawin = ocr.kawin.toUpperCase();
+            if (kawin.includes('BELUM')) {
+              this.form.statusPerkawinan = 'Belum Kawin';
+            } else if (kawin.includes('KAWIN')) {
+              this.form.statusPerkawinan = 'Kawin';
+            } else if (kawin.includes('CERAI')) {
+              this.form.statusPerkawinan = 'Cerai';
+            }
+          }
+          
+          // Pekerjaan
+          if (ocr.kerja) {
+            this.form.statusPekerjaan = ocr.kerja;
+          }
+          
+          // Fallback ke field lain jika ada
+          if (!this.form.tempatLahir && ocr.tempat_lahir) this.form.tempatLahir = ocr.tempat_lahir;
+          if (!this.form.tanggalLahir && ocr.tanggal_lahir) this.form.tanggalLahir = ocr.tanggal_lahir;
+          if (!this.form.jenisKelamin && ocr.jenis_kelamin) this.form.jenisKelamin = ocr.jenis_kelamin;
+          if (!this.form.statusPerkawinan && ocr.status_perkawinan) this.form.statusPerkawinan = ocr.status_perkawinan;
+          if (!this.form.statusPekerjaan && ocr.status_pekerjaan) this.form.statusPekerjaan = ocr.status_pekerjaan;
+        }
+      } catch (err) {
+        this.ocrError = err.response?.data?.message || 'Gagal memproses KTP. Pastikan gambar jelas dan server OCR aktif.';
+      } finally {
+        this.ocrLoading = false;
+      }
+    },
+    async handleSubmit() {
+      this.error = '';
+      try {
+        const formData = new FormData();
+        Object.entries(this.form).forEach(([k, v]) => {
+          if (k === 'fotoKtpUrl') return;
+          formData.append(k, v ?? '');
+        });
+        if (this.isEdit) {
+          await api.put(`/members/${this.$route.params.id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' }});
+        } else {
+          await api.post('/members', formData, { headers: { 'Content-Type': 'multipart/form-data' }});
+        }
+        this.$router.push('/members');
+      } catch (err) {
+        this.error = err.response?.data?.message || 'Gagal menyimpan data';
+      }
+    }
+  }
+};
+</script>
+
+<style scoped>
+.member-form-container {
+  max-width: 650px;
+  margin: 36px auto;
+  padding: 28px 26px 18px 26px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+h1 {
+  color: var(--primary);
+  font-size: 1.5em;
+  font-weight: 700;
+  margin-bottom: 22px;
+}
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.form-row {
+  display: flex;
+  gap: 18px;
+}
+.form-group {
+  flex: 1 1 180px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+}
+label {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+input, select {
+  padding: 10px 12px;
+  font-size: 1em;
+  border-radius: 8px;
+  border: 1.5px solid #d0d7e2;
+  margin-bottom: 2px;
+}
+input[readonly] {
+  background: #f5f6fa;
+  color: #888;
+}
+.ktp-upload-preview-container {
+  margin-top: 12px;
+  margin-bottom: 16px;
+}
+
+.ktp-images-comparison {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 12px;
+}
+
+.ktp-image-container {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ktp-image-container h4 {
+  margin-bottom: 8px;
+  font-size: 0.9em;
+  color: #555;
+}
+
+.ktp-preview {
+  margin-top: 6px;
+  width: 100%;
+  max-width: 280px;
+  border-radius: 6px;
+  border: 1.5px solid #d0d7e2;
+}
+
+.ktp-preview.processed {
+  border-color: var(--primary);
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.85em;
+  margin-top: 8px;
+}
+.form-checkbox {
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.form-actions {
+  margin-top: 12px;
+}
+.error {
+  color: #E74C3C;
+  margin-top: 12px;
+}
+@media (max-width: 700px) {
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+}
+</style>

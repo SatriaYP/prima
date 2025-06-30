@@ -38,7 +38,8 @@ const upload = multer({
 });
 
 // Route untuk memproses KTP dari file upload
-router.post('/ktp-ocr', upload.single('ktp'), ocrController.processKtp);
+// Menggunakan nama field 'image' agar konsisten dengan yang diharapkan API OCR eksternal
+router.post('/ktp-ocr', upload.single('image'), ocrController.processKtp);
 
 // Route untuk memproses KTP dari base64
 router.post('/ktp-ocr/base64', ocrController.processKtpBase64);

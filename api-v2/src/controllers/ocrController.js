@@ -27,23 +27,63 @@ export const processKtp = async (req, res) => {
   try {
     // Pastikan ada file yang diunggah
     if (!req.file) {
+      console.log('Error: Tidak ada file yang diunggah');
       return res.status(400).json({ 
         success: false, 
         message: 'Tidak ada file yang diunggah' 
       });
     }
 
+    console.log('File diterima:', req.file);
+    console.log('File path:', req.file.path);
+    console.log('File size:', req.file.size);
+    console.log('File mimetype:', req.file.mimetype);
+
+    // Pastikan file ada dan dapat diakses
+    try {
+      const stats = fs.statSync(req.file.path);
+      console.log('File stats:', stats);
+    } catch (fsError) {
+      console.error('Error mengakses file:', fsError);
+      return res.status(500).json({
+        success: false,
+        message: 'Error mengakses file upload',
+        error: fsError.message
+      });
+    }
+
     // Buat form data untuk dikirim ke API OCR
     const formData = new FormData();
-    formData.append('file', fs.createReadStream(req.file.path));
+    
+    // Baca file sebagai buffer
+    const fileBuffer = fs.readFileSync(req.file.path);
+    
+    // Pastikan nama field adalah 'image' sesuai yang diharapkan API OCR eksternal
+    formData.append('image', fileBuffer, {
+      filename: req.file.originalname || 'ktp.jpg',
+      contentType: req.file.mimetype || 'image/jpeg'
+    });
+    
+    console.log('OCR API URL:', OCR_API_URL);
+    console.log('OCR API Key tersedia:', !!OCR_API_KEY);
+    console.log('Headers:', formData.getHeaders());
+    console.log('File buffer size:', fileBuffer.length);
+    console.log('File name:', req.file.originalname || 'ktp.jpg');
+    console.log('File mimetype:', req.file.mimetype || 'image/jpeg');
 
     // Kirim request ke API OCR eksternal
+    console.log('Mengirim request ke API OCR...');
     const response = await axios.post(`${OCR_API_URL}/process/file`, formData, {
       headers: {
         'X-API-Key': OCR_API_KEY,
         ...formData.getHeaders()
-      }
+      },
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity
     });
+
+    console.log('Response dari API OCR:', response.status);
+    console.log('Response data:', JSON.stringify(response.data).substring(0, 200) + '...');
 
     // Hapus file temporary setelah diproses
     fs.unlink(req.file.path, (err) => {
@@ -54,6 +94,12 @@ export const processKtp = async (req, res) => {
     return res.json(response.data);
   } catch (error) {
     console.error('Error memproses KTP:', error.message);
+    console.error('Error detail:', error);
+    
+    if (error.response) {
+      console.error('Error response status:', error.response.status);
+      console.error('Error response data:', error.response.data);
+    }
     
     // Hapus file temporary jika terjadi error
     if (req.file) {
