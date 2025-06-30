@@ -35,7 +35,7 @@ import api from '../services/api';
 
 export default {
   name: 'StrukturOrganisasi',
-  components: { UnitNode, UnitFormDialog },
+  components: { UnitNode, UnitFormDialog, Snackbar },
   setup() {
     const tree = ref([]);
     const loading = ref(false);

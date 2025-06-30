@@ -8,7 +8,7 @@
 
 <script>
 export default {
-  name: 'Snackbar',
+  name: 'AppSnackbar',
   props: {
     show: Boolean,
     message: String,

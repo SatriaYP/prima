@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import memberRoutes from './routes/member.js';
 import officialRoutes from './routes/official.js';
+import regionRoutes from './routes/regions.js';
+import ocrRoutes from './routes/ocr.js';
 
 dotenv.config();
 
@@ -21,6 +23,8 @@ app.get('/', (req, res) => {
       auth: '/api/auth',
       member: '/api/members',
       official: '/api/officials',
+      regions: '/api/regions',
+      ocr: '/api'
     }
   });
 });
@@ -28,6 +32,8 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/members', memberRoutes);
 app.use('/api/officials', officialRoutes);
+app.use('/api/regions', regionRoutes);
+app.use('/api', ocrRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

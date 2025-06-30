@@ -143,32 +143,36 @@ export default {
   name: 'MemberFormView',
   data() {
     return {
+      isEdit: !!this.$route.params.id,
       form: {
         nik: '',
         nama: '',
-        alamat: '',
         tempatLahir: '',
         tanggalLahir: '',
         jenisKelamin: '',
         statusPerkawinan: '',
         statusPekerjaan: '',
         minatBakat: '',
+        alamat: '',
         provinsiId: '',
         kabupatenId: '',
         kecamatanId: '',
         kelurahanId: '',
         noKta: '',
-        penerbitKta: 'DPP PRIMA',
+        penerbitKta: 'DPP',
         fotoKtp: null,
         fotoKtpUrl: '',
+        fotoKtpProcessedUrl: '',
         isConfirmed: false
       },
-      error: '',
-      isEdit: false,
       provinsiList: [],
       kabupatenList: [],
       kecamatanList: [],
-      kelurahanList: []
+      kelurahanList: [],
+      ocrLoading: false,
+      ocrError: '',
+      ocrResult: null,
+      error: ''
     };
   },
   watch: {
