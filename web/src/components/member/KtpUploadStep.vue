@@ -236,7 +236,7 @@ export default {
           this.ocrResult = JSON.stringify(res.data.data || res.data, null, 2);
           // Preview gambar hasil preprocessing
           // Cari berbagai kemungkinan nama field untuk processed image
-          let processedUrl = res.data.processed_image_url || res.data.processed_image || '';
+          let processedUrl = res.data.processed_image_url || res.data.processed_image || res.data.enhanced_image || '';
           if (res.data.processed_image_url) {
             processedUrl = res.data.processed_image_url;
           } else if (!processedUrl && (res.data.processed_image_base64 || res.data.processed_image_data)) {
