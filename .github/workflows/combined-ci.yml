@@ -106,8 +106,8 @@ jobs:
           npm install --production
           pm2 restart prima-web-api-staging || pm2 start app.js --name prima-web-api-staging
           
-          # Reload nginx for web
-          sudo systemctl reload nginx
+          # Reload nginx for web (using sudo without password)
+          systemctl reload nginx
         "
         
   deploy-production:
@@ -130,10 +130,10 @@ jobs:
       run: |
         echo "Deploying to production server 212.85.26.97"
         
-        # Create production directories if not exist
+        # Create production directories if not exist (using sudo without password)
         ssh ${{ secrets.SSH_USER }}@212.85.26.97 "
-          sudo mkdir -p /var/www/prima-web/{api,web}
-          sudo chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} /var/www/prima-web
+          mkdir -p /var/www/prima-web/{api,web}
+          chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} /var/www/prima-web
         "
         
         # Deploy API v2
@@ -151,6 +151,6 @@ jobs:
           npm install --production
           pm2 restart prima-web-api || pm2 start app.js --name prima-web-api
           
-          # Reload nginx for web
-          sudo systemctl reload nginx
+          # Reload nginx for web (using sudo without password)
+          systemctl reload nginx
         " 
