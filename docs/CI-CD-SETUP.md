@@ -15,6 +15,7 @@ Workflow terpadu untuk backend API v2 dan frontend Vue.js yang di-deploy ke satu
 - Deployment ke VPS 212.85.26.97
 - Staging deployment (branch `develop`)
 - Production deployment (branch `main`)
+- **Automatic directory setup** untuk uploads dan static files
 
 ## Setup yang Diperlukan
 
@@ -72,8 +73,9 @@ Kedua aplikasi di-deploy ke satu server VPS yang sama.
 **Deployment Process:**
 1. **Testing & Build:** Semua test dan build dilakukan di GitHub Actions
 2. **File Transfer:** Menggunakan rsync untuk transfer file ke server
-3. **Service Restart:** Menggunakan PM2 untuk API v2 dan Nginx reload untuk web
-4. **Environment Separation:** Staging dan production terpisah
+3. **Directory Setup:** Otomatis membuat direktori yang diperlukan (uploads, public)
+4. **Service Restart:** Menggunakan PM2 untuk API v2 dan Nginx reload untuk web
+5. **Environment Separation:** Staging dan production terpisah
 
 **Required Secrets:**
 ```
@@ -155,12 +157,75 @@ Tambahkan status badges di README:
    - Check server connectivity
    - Validate environment variables
 
+4. **OCR Upload Fails (500 Error)**
+   - Check if uploads directory exists: `/var/www/prima-web-staging/api/uploads/temp`
+   - Check if public directory exists: `/var/www/prima-web-staging/api/public/processed`
+   - Verify directory permissions (755)
+   - Check PM2 environment variables for DATABASE_URL
+
+5. **Database Connection Issues**
+   - Verify DATABASE_URL path is absolute in production/staging
+   - Check if database file exists and has correct permissions
+   - Ensure Prisma migrations have been run
+
+6. **Login Error: "The table `main.User` does not exist"**
+   - **OTOMATIS DIPERBAIKI** oleh CI/CD workflow
+   - CI/CD sekarang otomatis menjalankan:
+     - Setup `.env` file
+     - Prisma generate dan migrate
+     - Database seeding
+   - Jika masih error, jalankan manual:
+     ```bash
+     cd /var/www/prima-web-staging/api
+     chmod +x scripts/setup-database.sh
+     ./scripts/setup-database.sh staging
+     pm2 restart prima-web-api-staging
+     ```
+   - Script `scripts/setup-database.sh` menangani semua setup database
+
 ### Debug Workflows
 Untuk debug workflow:
 1. Go to Actions tab di GitHub
 2. Click pada workflow yang gagal
 3. Check logs untuk error details
 4. Use `echo` commands untuk debugging
+
+## Database Automation
+
+### Automatic Database Setup
+CI/CD workflow sekarang otomatis menangani setup database:
+
+**Untuk Staging (branch `develop`):**
+- Otomatis membuat `.env` file dengan konfigurasi staging
+- Menjalankan `npx prisma generate`
+- Menjalankan `npx prisma migrate deploy`
+- Menjalankan `npx prisma db push --accept-data-loss`
+- Otomatis seed admin user jika database kosong
+
+**Untuk Production (branch `main`):**
+- Otomatis membuat `.env` file dengan konfigurasi production
+- Menjalankan semua database setup steps
+- Memastikan database siap untuk production
+
+**Script yang Digunakan:**
+- `api-v2/scripts/setup-database.sh` - Script utama untuk setup database
+- `api-v2/env.template` - Template untuk environment variables
+- `api-v2/prisma/seed-minimal.js` - Script untuk membuat admin user
+
+### Manual Database Setup
+Jika perlu setup manual:
+
+```bash
+# Staging
+cd /var/www/prima-web-staging/api
+chmod +x scripts/setup-database.sh
+./scripts/setup-database.sh staging
+
+# Production
+cd /var/www/prima-web/api
+chmod +x scripts/setup-database.sh
+./scripts/setup-database.sh production
+```
 
 ## Best Practices
 
@@ -183,4 +248,9 @@ Untuk debug workflow:
 5. **Security**
    - Regular security audits
    - Scan for vulnerabilities
-   - Use secrets untuk sensitive data 
+   - Use secrets untuk sensitive data
+
+6. **Directory Management**
+   - Automatic creation of required directories during deployment
+   - Proper permissions for uploads and static files
+   - Handle .gitignore files that exclude upload directories 

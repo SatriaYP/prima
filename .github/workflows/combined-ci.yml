@@ -128,10 +128,14 @@ jobs:
           chmod 755 /var/www/prima-web-staging/api/public/processed
         "
         
-        # Restart services
+        # Setup database and restart services
         ssh ${{ secrets.SSH_USER }}@212.85.26.97 "
           cd /var/www/prima-web-staging/api
           npm install --production
+          
+          # Setup database using script
+          chmod +x scripts/setup-database.sh
+          ./scripts/setup-database.sh staging
           
           # Verify file exists before starting PM2
           if [ -f src/app.js ]; then
@@ -189,10 +193,14 @@ jobs:
           chmod 755 /var/www/prima-web/api/public/processed
         "
         
-        # Restart services
+        # Setup database and restart services
         ssh ${{ secrets.SSH_USER }}@212.85.26.97 "
           cd /var/www/prima-web/api
           npm install --production
+          
+          # Setup database using script
+          chmod +x scripts/setup-database.sh
+          ./scripts/setup-database.sh production
           
           # Verify file exists before starting PM2
           if [ -f src/app.js ]; then

@@ -84,7 +84,7 @@
         <label>Tanggal Lahir</label>
         <input v-model="dateFormatted" placeholder="DD/MM/YYYY" required />
       </div>
-    </div>
+      </div>
     <!-- Row Tempat & Tanggal + Alamat -->
     <div class="form-group">
       <label>Alamat</label>
@@ -423,7 +423,7 @@ export default {
         } else if (err.response?.status >= 500) {
           this.ocrError = 'Server OCR sedang bermasalah. Silakan coba beberapa saat lagi.';
         } else {
-          this.ocrError = err.response?.data?.message || 'Gagal memproses KTP. Pastikan gambar jelas dan server OCR aktif.';
+        this.ocrError = err.response?.data?.message || 'Gagal memproses KTP. Pastikan gambar jelas dan server OCR aktif.';
         }
       } finally {
         this.ocrLoading = false;

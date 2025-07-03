@@ -12,6 +12,8 @@ async function main() {
       username: 'admin',
       password,
       role: 'admin',
+      name: 'Administrator',
+      level: 'dpp',
     },
   });
 

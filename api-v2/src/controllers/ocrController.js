@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // URL API OCR dari environment variable
-const OCR_API_URL = process.env.OCR_API_URL || 'https://ocr.partaiprima.id';
+const OCR_API_URL = process.env.OCR_API_URL || 'http://localhost:9000';
 const OCR_API_KEY = process.env.OCR_API_KEY;
 
 // Memastikan API key tersedia

@@ -1,0 +1,23 @@
+# Perintah untuk memperbaiki database staging
+# Jalankan satu per satu di server staging:
+
+# 1. Masuk ke direktori staging
+cd /var/www/prima-web-staging/api
+
+# 2. Generate Prisma client
+npx prisma generate
+
+# 3. Deploy migrations
+npx prisma migrate deploy
+
+# 4. Push schema (jika ada perubahan)
+npx prisma db push --accept-data-loss
+
+# 5. Seed admin user
+node prisma/seed-minimal.js
+
+# 6. Restart PM2
+pm2 restart prima-web-api-staging
+
+# 7. Cek logs
+pm2 logs prima-web-api-staging --lines 10 

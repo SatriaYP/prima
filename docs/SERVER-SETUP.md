@@ -52,14 +52,26 @@ sudo apt install -y nginx nodejs npm git
 
 ### 2. **Setup Direktori**
 ```bash
-# Buat direktori
+# Buat direktori utama
 sudo mkdir -p /var/www/prima-web-staging/{api,web}
 sudo mkdir -p /var/www/prima-web/{api,web}
 sudo mkdir -p /var/log/pm2
 
+# Buat direktori yang diperlukan untuk aplikasi
+sudo mkdir -p /var/www/prima-web-staging/api/uploads/temp
+sudo mkdir -p /var/www/prima-web-staging/api/public/processed
+sudo mkdir -p /var/www/prima-web/api/uploads/temp
+sudo mkdir -p /var/www/prima-web/api/public/processed
+
 # Set ownership
 sudo chown -R primax:primax /var/www/prima-web*
 sudo chown -R primax:primax /var/log/pm2
+
+# Set permissions
+sudo chmod 755 /var/www/prima-web-staging/api/uploads/temp
+sudo chmod 755 /var/www/prima-web-staging/api/public/processed
+sudo chmod 755 /var/www/prima-web/api/uploads/temp
+sudo chmod 755 /var/www/prima-web/api/public/processed
 ```
 
 ### 3. **Install PM2**
@@ -126,6 +138,17 @@ sudo ufw allow 3002/tcp
 # Check status
 sudo ufw status
 ```
+
+### 8. **Setup Sudoers (untuk GitHub Actions)**
+```bash
+# Edit sudoers file
+sudo visudo
+
+# Tambahkan line berikut:
+primax ALL=(ALL) NOPASSWD: /usr/bin/systemctl reload nginx, /usr/bin/systemctl restart nginx, /usr/bin/nginx -t
+```
+
+**Note:** Ini diperlukan agar GitHub Actions dapat reload Nginx tanpa password prompt.
 
 ## 🔧 **Configuration Files**
 
@@ -221,6 +244,12 @@ git pull origin main
 npm install
 npm run build
 # Files akan di-copy otomatis oleh workflow
+
+# Setup directories jika belum ada
+mkdir -p /var/www/prima-web/api/uploads/temp
+mkdir -p /var/www/prima-web/api/public/processed
+chmod 755 /var/www/prima-web/api/uploads/temp
+chmod 755 /var/www/prima-web/api/public/processed
 ```
 
 ## 🔍 **Troubleshooting**
@@ -262,6 +291,36 @@ npm run build
    sudo netstat -tlnp | grep :3002
    ```
 
+5. **OCR Upload Issues**
+   ```bash
+   # Check if directories exist
+   ls -la /var/www/prima-web-staging/api/uploads/temp
+   ls -la /var/www/prima-web-staging/api/public/processed
+   
+   # Check permissions
+   stat /var/www/prima-web-staging/api/uploads/temp
+   stat /var/www/prima-web-staging/api/public/processed
+   
+   # Create if missing
+   mkdir -p /var/www/prima-web-staging/api/uploads/temp
+   mkdir -p /var/www/prima-web-staging/api/public/processed
+   chmod 755 /var/www/prima-web-staging/api/uploads/temp
+   chmod 755 /var/www/prima-web-staging/api/public/processed
+   ```
+
+6. **Database Connection Issues**
+   ```bash
+   # Check PM2 environment
+   pm2 env prima-web-api-staging
+   
+   # Check database file
+   ls -la /var/www/prima-web-staging/api/prisma/dev.db
+   
+   # Run Prisma migrations if needed
+   cd /var/www/prima-web-staging/api
+   npx prisma migrate deploy
+   ```
+
 ### Health Check URLs
 - **Staging:** `https://web-staging.partaiprima.id/api/health`
 - **Production:** `https://web.partaiprima.id/api/health`
@@ -284,6 +343,12 @@ npm run build
 - Connection pooling
 - Query optimization
 - Index optimization
+
+### File Upload Optimization
+- Proper directory permissions (755)
+- Automatic directory creation during deployment
+- Separate temp and processed directories
+- Image processing optimization
 
 ## 🔒 **Security Considerations**
 

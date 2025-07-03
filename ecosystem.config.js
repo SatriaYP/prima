@@ -12,8 +12,11 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3001,
-        DATABASE_URL: 'file:./prisma/dev.db',
-        JWT_SECRET: 'your-jwt-secret-here'
+        DATABASE_URL: 'file:/var/www/prima-web/api/prisma/dev.db',
+        JWT_SECRET: 'your-jwt-secret-here',
+        OCR_API_URL: 'http://localhost:9000',
+        WILAYAH_API_URL: 'http://localhost:3001',
+        OCR_API_KEY: 'GbtXXzyMjZgDnSXyFqGHfuNFklv3ZBMrQteUuYkbgWRQXBJlPPPciRc2cjJCrIlqRlJHdlBzkmWblAdO4w35735uuD3dX4MpRFA5zZlIYntNpjaXMhyFHwDqxaFWszRc'
       },
       error_file: '/var/log/pm2/prima-web-api-error.log',
       out_file: '/var/log/pm2/prima-web-api-out.log',
@@ -33,8 +36,11 @@ module.exports = {
       env: {
         NODE_ENV: 'staging',
         PORT: 3002,
-        DATABASE_URL: 'file:./prisma/dev.db',
-        JWT_SECRET: 'your-jwt-secret-staging'
+        DATABASE_URL: 'file:/var/www/prima-web-staging/api/prisma/dev.db',
+        JWT_SECRET: 'your-jwt-secret-staging',
+        OCR_API_URL: 'http://localhost:9000',
+        WILAYAH_API_URL: 'http://localhost:3002',
+        OCR_API_KEY: 'GbtXXzyMjZgDnSXyFqGHfuNFklv3ZBMrQteUuYkbgWRQXBJlPPPciRc2cjJCrIlqRlJHdlBzkmWblAdO4w35735uuD3dX4MpRFA5zZlIYntNpjaXMhyFHwDqxaFWszRc'
       },
       error_file: '/var/log/pm2/prima-web-api-staging-error.log',
       out_file: '/var/log/pm2/prima-web-api-staging-out.log',
