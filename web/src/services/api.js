@@ -3,7 +3,7 @@ import axios from 'axios';
 // Ganti baseURL sesuai alamat backend API kamu
 const api = axios.create({
   baseURL: 'http://localhost:4000/api',
-  timeout: 10000,
+  timeout: 60000, // 60 detik untuk proses OCR yang membutuhkan waktu lama
 });
 
 // Interceptor untuk menambahkan Authorization header jika ada token

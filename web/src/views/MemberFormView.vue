@@ -195,7 +195,11 @@ export default {
       this.form.noKta = `${prov}${kab}${kec}0001`;
     },
     updateForm(updated) {
+      console.log('🔄 Parent updateForm called with:', updated);
+      console.log('🔄 Current form before update:', this.form);
       this.form = { ...this.form, ...updated };
+      console.log('🔄 Form after update:', this.form);
+      console.log('🔄 fotoKtpProcessedUrl after update:', this.form.fotoKtpProcessedUrl);
     },
     async handleSubmit() {
       this.error = '';

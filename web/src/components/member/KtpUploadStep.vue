@@ -22,7 +22,14 @@
           <div class="ktp-image-container">
             <h4>Foto Hasil Proses</h4>
             <template v-if="form.fotoKtpProcessedUrl">
-              <img :src="form.fotoKtpProcessedUrl" :key="form.fotoKtpProcessedUrl" alt="KTP hasil proses" class="ktp-preview processed" />
+              <img 
+                :src="form.fotoKtpProcessedUrl" 
+                :key="form.fotoKtpProcessedUrl + Date.now()" 
+                alt="KTP hasil proses" 
+                class="ktp-preview processed"
+                @load="onImageLoad"
+                @error="onImageError"
+              />
               <button type="button" class="btn btn-blue btn-sm" @click="downloadProcessedImage">Download Foto</button>
             </template>
             <template v-else>
@@ -43,7 +50,11 @@
         </div>
         
         
-        <div v-if="ocrLoading" class="ocr-loading">Memproses KTP... Mohon tunggu.</div>
+        <div v-if="ocrLoading" class="ocr-loading">
+          <div class="loading-spinner"></div>
+          <div>Memproses KTP... Mohon tunggu (maksimal 2 menit)</div>
+          <div class="loading-tip">Tips: Pastikan gambar KTP jelas dan tidak blur</div>
+        </div>
         <div v-if="ocrError" class="ocr-error">{{ ocrError }}</div>
       </div>
     
@@ -73,11 +84,11 @@
         <label>Tanggal Lahir</label>
         <input v-model="dateFormatted" placeholder="DD/MM/YYYY" required />
       </div>
+    </div>
     <!-- Row Tempat & Tanggal + Alamat -->
     <div class="form-group">
       <label>Alamat</label>
       <input v-model="form.alamat" />
-    </div>
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -189,7 +200,8 @@ export default {
         this.$emit('update:form', {
           ...this.form,
           fotoKtp: file,
-          fotoKtpUrl: URL.createObjectURL(file)
+          fotoKtpUrl: URL.createObjectURL(file),
+          fotoKtpProcessedUrl: '' // Reset processed image
         });
         this.ocrResult = null;
         this.ocrError = '';
@@ -219,44 +231,64 @@ export default {
       document.body.removeChild(a);
     },
     
+    onImageLoad() {
+      console.log('✅ Image loaded successfully:', this.form.fotoKtpProcessedUrl);
+    },
+    
+    onImageError(event) {
+      console.error('❌ Image failed to load:', this.form.fotoKtpProcessedUrl);
+      console.error('Error event:', event);
+      this.ocrError = 'Gagal memuat gambar hasil proses. Silakan coba lagi.';
+    },
+    
     async prosesKtpOcr() {
       if (!this.form.fotoKtp) return;
       this.ocrLoading = true;
       this.ocrError = '';
       this.ocrResult = null;
+      
       try {
         const formData = new FormData();
-        // Menggunakan nama field 'image' agar sesuai dengan konfigurasi backend dan API OCR eksternal
         formData.append('image', this.form.fotoKtp);
-        // Ganti URL berikut dengan endpoint OCR backend Anda
-        const res = await api.post('/ktp-ocr', formData, { headers: { 'Content-Type': 'multipart/form-data' }});
-        // Asumsi response: { data: {...}, processed_image_url: '...' }
-        if (res.data) {
-          // Tampilkan hasil OCR JSON
-          this.ocrResult = JSON.stringify(res.data.data || res.data, null, 2);
-          // Preview gambar hasil preprocessing
-          // Cari berbagai kemungkinan nama field untuk processed image
-          let processedUrl = res.data.processed_image_url || res.data.processed_image || res.data.enhanced_image || '';
+        
+        console.log('Mengirim request OCR...');
+        const res = await api.post('/ktp-ocr', formData, { 
+          headers: { 'Content-Type': 'multipart/form-data' },
+          timeout: 120000 // 2 menit timeout khusus untuk OCR
+        });
+        
+        console.log('Response OCR:', res.data);
+        
+        if (res.data.success && res.data.data) {
+          // Tampilkan hasil OCR JSON untuk debug
+          this.ocrResult = JSON.stringify(res.data, null, 2);
+          
+          // Update foto hasil proses
+          let imageUrl = '';
+          
+          // Coba gunakan processed_image_url terlebih dahulu
           if (res.data.processed_image_url) {
-            processedUrl = res.data.processed_image_url;
-          } else if (!processedUrl && (res.data.processed_image_base64 || res.data.processed_image_data)) {
-            // Tambahkan prefix jika belum ada
-            const base64 = res.data.processed_image_base64 || res.data.processed_image_data;
-            processedUrl = base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`;
+            imageUrl = res.data.processed_image_url;
+            console.log('Using processed_image_url:', imageUrl);
           }
-          if (processedUrl) {
-        console.log('Processed image URL:', processedUrl);
-            this.$emit('update:form', {
-              ...this.form,
-              fotoKtpProcessedUrl: processedUrl
-            });
+          // Fallback ke file_paths jika processed_image_url tidak ada
+          else if (res.data.file_paths && res.data.file_paths.processed_image) {
+            imageUrl = `${window.location.protocol}//${window.location.host}/api${res.data.file_paths.processed_image}`;
+            console.log('Using file_paths fallback:', imageUrl);
+          }
+          
+          if (imageUrl) {
+            console.log('✅ Image URL ready:', imageUrl);
           }
           
           // Autofill field dari hasil OCR
-          const ocr = res.data.data || res.data;
-          
-          // Siapkan object form yang akan diperbarui
+          const ocr = res.data.data;
           let updatedForm = { ...this.form };
+          
+          // TAMBAHKAN URL GAMBAR KE UPDATED FORM
+          if (imageUrl) {
+            updatedForm.fotoKtpProcessedUrl = imageUrl;
+          }
           
           // NIK
           if (ocr.nik) {
@@ -288,11 +320,14 @@ export default {
           }
           
           // Nama
-          if (!updatedForm.nama && ocr.nama) updatedForm.nama = this.toTitleCase(ocr.nama);
-          if (!updatedForm.alamat && ocr.alamat) updatedForm.alamat = this.toTitleCase(ocr.alamat);
+          if (!updatedForm.nama && ocr.nama) {
+            updatedForm.nama = this.toTitleCase(ocr.nama);
+          }
           
           // Alamat
-          if (ocr.alamat) updatedForm.alamat = ocr.alamat;
+          if (ocr.alamat) {
+            updatedForm.alamat = this.toTitleCase(ocr.alamat);
+          }
           
           // TTL (Tempat Tanggal Lahir)
           if (ocr.ttl) {
@@ -345,17 +380,43 @@ export default {
           }
           
           // Fallback ke field lain jika ada
-          if (!updatedForm.tempatLahir && ocr.tempat_lahir) updatedForm.tempatLahir = this.toTitleCase(ocr.tempat_lahir);
-          if (!updatedForm.tanggalLahir && ocr.tanggal_lahir) updatedForm.tanggalLahir = ocr.tanggal_lahir;
-          if (!updatedForm.jenisKelamin && ocr.jenis_kelamin) updatedForm.jenisKelamin = ocr.jenis_kelamin;
-          if (!updatedForm.statusPerkawinan && ocr.status_perkawinan) updatedForm.statusPerkawinan = ocr.status_perkawinan;
-          if (!updatedForm.statusPekerjaan && ocr.status_pekerjaan) updatedForm.statusPekerjaan = ocr.status_pekerjaan;
+          if (!updatedForm.tempatLahir && ocr.tempat_lahir) {
+            updatedForm.tempatLahir = this.toTitleCase(ocr.tempat_lahir);
+          }
+          if (!updatedForm.tanggalLahir && ocr.tanggal_lahir) {
+            updatedForm.tanggalLahir = ocr.tanggal_lahir;
+          }
+          if (!updatedForm.jenisKelamin && ocr.jenis_kelamin) {
+            updatedForm.jenisKelamin = ocr.jenis_kelamin;
+          }
+          if (!updatedForm.statusPerkawinan && ocr.status_perkawinan) {
+            updatedForm.statusPerkawinan = ocr.status_perkawinan;
+          }
+          if (!updatedForm.statusPekerjaan && ocr.status_pekerjaan) {
+            updatedForm.statusPekerjaan = ocr.status_pekerjaan;
+          }
           
-          // Emit update form dengan semua perubahan
+          // Emit update form dengan SEMUA perubahan dalam SATU event
+          console.log('🎯 Final updatedForm with image URL:', updatedForm);
           this.$emit('update:form', updatedForm);
+        } else {
+          throw new Error('Response OCR tidak valid');
         }
       } catch (err) {
-        this.ocrError = err.response?.data?.message || 'Gagal memproses KTP. Pastikan gambar jelas dan server OCR aktif.';
+        console.error('Error OCR:', err);
+        
+        // Handle different types of errors
+        if (err.code === 'ECONNABORTED') {
+          this.ocrError = 'Proses OCR memakan waktu terlalu lama. Silakan coba lagi atau gunakan gambar yang lebih jelas.';
+        } else if (err.response?.status === 413) {
+          this.ocrError = 'File gambar terlalu besar. Gunakan gambar dengan ukuran maksimal 5MB.';
+        } else if (err.response?.status === 400) {
+          this.ocrError = 'Format file tidak didukung. Gunakan file gambar (JPG, PNG, dll).';
+        } else if (err.response?.status >= 500) {
+          this.ocrError = 'Server OCR sedang bermasalah. Silakan coba beberapa saat lagi.';
+        } else {
+          this.ocrError = err.response?.data?.message || 'Gagal memproses KTP. Pastikan gambar jelas dan server OCR aktif.';
+        }
       } finally {
         this.ocrLoading = false;
       }
@@ -365,6 +426,16 @@ export default {
 </script>
 
 <style scoped>
+.ktp-upload-step {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ktp-upload-block {
+  margin-bottom: 20px;
+}
+
 .ktp-upload-preview-container {
   margin-top: 12px;
   margin-bottom: 16px;
@@ -403,6 +474,27 @@ export default {
   border-color: var(--primary);
 }
 
+.ktp-placeholder {
+  width: 100%;
+  max-width: 280px;
+  height: 180px;
+  border: 2px dashed #d0d7e2;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+  font-size: 0.9em;
+}
+
+.ktp-arrow {
+  display: flex;
+  align-items: center;
+  font-size: 1.5em;
+  color: #666;
+  margin: 0 10px;
+}
+
 .btn-sm {
   padding: 6px 12px;
   font-size: 0.85em;
@@ -412,16 +504,53 @@ export default {
 .ocr-loading {
   margin: 10px 0;
   color: #3498db;
+  font-weight: 500;
+  text-align: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 15px auto;
+}
+
+.loading-tip {
+  font-size: 0.85em;
+  color: #6c757d;
+  margin-top: 10px;
+  font-style: italic;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .ocr-error {
   margin: 10px 0;
   color: #e74c3c;
+  font-weight: 500;
 }
 
 .ocr-result-debug {
   margin: 10px 0;
   font-size: 0.85em;
+}
+
+.ocr-result-debug pre {
+  background: #f5f5f5;
+  padding: 10px;
+  border-radius: 4px;
+  overflow-x: auto;
+  max-height: 200px;
 }
 
 /* Form alignment */
@@ -434,28 +563,96 @@ export default {
 .form-row .form-group {
   flex: 1 1 320px;
   display: flex;
-  align-items: center;
-  gap: 14px;
+  flex-direction: column;
 }
 
 .form-row label {
-  width: 140px;
   font-weight: 600;
-  margin-bottom: 0;
+  margin-bottom: 4px;
   color: #333;
 }
 
 .form-row input,
 .form-row select {
-  flex: 1;
   padding: 10px 12px;
   border: 1.5px solid #d0d7e2;
   border-radius: 8px;
+  font-size: 1em;
+}
+
+.form-group {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.form-group input,
+.form-group select {
+  padding: 10px 12px;
+  border: 1.5px solid #d0d7e2;
+  border-radius: 8px;
+  font-size: 1em;
 }
 
 .step-navigation {
   margin-top: 24px;
   display: flex;
   justify-content: flex-end;
+}
+
+/* Button styles */
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-blue {
+  background: #3498db;
+  color: white;
+}
+
+.btn-blue:hover {
+  background: #2980b9;
+}
+
+.btn-green {
+  background: #27ae60;
+  color: white;
+}
+
+.btn-green:hover {
+  background: #229954;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 700px) {
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+  
+  .ktp-images-comparison {
+    flex-direction: column;
+  }
+  
+  .ktp-arrow {
+    transform: rotate(90deg);
+    margin: 10px 0;
+  }
 }
 </style>

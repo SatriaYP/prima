@@ -140,9 +140,62 @@ export default {
 </script>
 
 <style scoped>
+.region-selection-step {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 h3 {
   margin-bottom: 20px;
   color: var(--primary);
+}
+
+/* Form alignment */
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.form-row .form-group {
+  flex: 1 1 320px;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-row label {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.form-row input,
+.form-row select {
+  padding: 10px 12px;
+  border: 1.5px solid #d0d7e2;
+  border-radius: 8px;
+  font-size: 1em;
+}
+
+.form-group {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.form-group input,
+.form-group select {
+  padding: 10px 12px;
+  border: 1.5px solid #d0d7e2;
+  border-radius: 8px;
+  font-size: 1em;
 }
 
 .field-info {
@@ -155,5 +208,37 @@ h3 {
   margin-top: 24px;
   display: flex;
   justify-content: space-between;
+}
+
+/* Button styles */
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-green {
+  background: #27ae60;
+  color: white;
+}
+
+.btn-green:hover {
+  background: #229954;
+}
+
+.btn-green:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 700px) {
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
 }
 </style>
