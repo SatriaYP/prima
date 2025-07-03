@@ -53,25 +53,32 @@ Kedua aplikasi di-deploy ke satu server VPS yang sama.
 
 **Struktur Direktori di Server:**
 ```
-/var/www/prima-staging/     # Staging environment
-├── api/                    # API v2 backend
-└── web/                    # Vue.js frontend
+/var/www/prima-web-staging/     # Staging environment (branch develop)
+├── api/                        # API v2 backend
+└── web/                        # Vue.js frontend
 
-/var/www/prima/             # Production environment  
-├── api/                    # API v2 backend
-└── web/                    # Vue.js frontend
+/var/www/prima-web/             # Production environment (branch main)
+├── api/                        # API v2 backend
+└── web/                        # Vue.js frontend
 ```
+
+**Note:** Path `/var/www/prima/` digunakan untuk aplikasi Flutter Prima
+
+**Existing Services di Server:**
+- **OCR API:** `https://ocr.partaiprima.id` (FastAPI/Uvicorn, port 9000)
+- **Wilayah API:** `https://wilayah.partaiprima.id` (Static JSON files)
+- **Web Frontend:** `https://web.partaiprima.id` (Cloudflare)
 
 **Deployment Process:**
 1. **Testing & Build:** Semua test dan build dilakukan di GitHub Actions
 2. **File Transfer:** Menggunakan rsync untuk transfer file ke server
-3. **Service Restart:** Menggunakan PM2 untuk API dan Nginx untuk web
+3. **Service Restart:** Menggunakan PM2 untuk API v2 dan Nginx reload untuk web
 4. **Environment Separation:** Staging dan production terpisah
 
 **Required Secrets:**
 ```
 SSH_PRIVATE_KEY=your_private_ssh_key
-SSH_USER=your_server_username
+SSH_USER=primax
 ```
 
 ## Testing Configuration

@@ -85,23 +85,29 @@ jobs:
       run: |
         echo "Deploying to staging server 212.85.26.97"
         
+        # Create staging directories if not exist
+        ssh ${{ secrets.SSH_USER }}@212.85.26.97 "
+          sudo mkdir -p /var/www/prima-web-staging/{api,web}
+          sudo chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} /var/www/prima-web-staging
+        "
+        
         # Deploy API v2
-        rsync -avz --delete ./api-v2/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima-staging-v2/api/
+        rsync -avz --delete ./api-v2/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima-web-staging/api/
         
         # Deploy Web
         cd web
         yarn install --frozen-lockfile
         yarn build
-        rsync -avz --delete dist/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima-staging-v2/web/
+        rsync -avz --delete dist/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima-web-staging/web/
         
-        # Restart services and reload nginx
+        # Restart services
         ssh ${{ secrets.SSH_USER }}@212.85.26.97 "
-          cd /var/www/prima-staging-v2/api
+          cd /var/www/prima-web-staging/api
           npm install --production
-          pm2 restart prima-api-staging-v2 || pm2 start app.js --name prima-api-staging-v2 --cwd /var/www/prima-staging-v2/api --env staging
+          pm2 restart prima-web-api-staging || pm2 start app.js --name prima-web-api-staging
           
-          # Reload nginx using deployment script
-          /home/${{ secrets.SSH_USER }}/deploy-scripts/reload-nginx.sh
+          # Reload nginx for web
+          sudo systemctl reload nginx
         "
         
   deploy-production:
@@ -124,21 +130,27 @@ jobs:
       run: |
         echo "Deploying to production server 212.85.26.97"
         
+        # Create production directories if not exist
+        ssh ${{ secrets.SSH_USER }}@212.85.26.97 "
+          sudo mkdir -p /var/www/prima-web/{api,web}
+          sudo chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} /var/www/prima-web
+        "
+        
         # Deploy API v2
-        rsync -avz --delete ./api-v2/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima-v2/api/
+        rsync -avz --delete ./api-v2/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima-web/api/
         
         # Deploy Web
         cd web
         yarn install --frozen-lockfile
         yarn build
-        rsync -avz --delete dist/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima-v2/web/
+        rsync -avz --delete dist/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima-web/web/
         
-        # Restart services and reload nginx
+        # Restart services
         ssh ${{ secrets.SSH_USER }}@212.85.26.97 "
-          cd /var/www/prima-v2/api
+          cd /var/www/prima-web/api
           npm install --production
-          pm2 restart prima-api-v2 || pm2 start app.js --name prima-api-v2 --cwd /var/www/prima-v2/api --env production
+          pm2 restart prima-web-api || pm2 start app.js --name prima-web-api
           
-          # Reload nginx using deployment script
-          /home/${{ secrets.SSH_USER }}/deploy-scripts/reload-nginx.sh
+          # Reload nginx for web
+          sudo systemctl reload nginx
         " 
