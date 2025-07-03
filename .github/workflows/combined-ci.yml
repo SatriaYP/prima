@@ -128,26 +128,13 @@ jobs:
           chmod 755 /var/www/prima-web-staging/api/public/processed
         "
         
-        # Setup database and restart services
+        # Setup database and restart services using robust script
         ssh ${{ secrets.SSH_USER }}@212.85.26.97 "
           cd /var/www/prima-web-staging/api
-          npm install --production
           
-          # Setup database using script
-          chmod +x scripts/setup-database.sh
-          ./scripts/setup-database.sh staging
-          
-          # Verify file exists before starting PM2
-          if [ -f src/app.js ]; then
-            pm2 restart prima-web-api-staging || pm2 start src/app.js --name prima-web-api-staging
-          else
-            echo 'ERROR: src/app.js not found!'
-            ls -la src/
-            exit 1
-          fi
-          
-          # Reload nginx for web
-          sudo systemctl reload nginx
+          # Use robust deployment script
+          chmod +x scripts/deploy-staging.sh
+          ./scripts/deploy-staging.sh
         "
         
   deploy-production:
