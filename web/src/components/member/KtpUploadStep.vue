@@ -273,7 +273,11 @@ export default {
           }
           // Fallback ke file_paths jika processed_image_url tidak ada
           else if (res.data.file_paths && res.data.file_paths.processed_image) {
-            imageUrl = `${window.location.protocol}//${window.location.host}/api${res.data.file_paths.processed_image}`;
+            // Gunakan base URL yang sama dengan API untuk konsistensi
+            const baseUrl = window.location.protocol === 'https:' 
+              ? `https://${window.location.hostname}`
+              : `http://${window.location.hostname}`;
+            imageUrl = `${baseUrl}/api${res.data.file_paths.processed_image}`;
             console.log('Using file_paths fallback:', imageUrl);
           }
           

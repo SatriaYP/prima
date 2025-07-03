@@ -1,8 +1,23 @@
 import axios from 'axios';
 
-// Ganti baseURL sesuai alamat backend API kamu
+// Environment-based API configuration
+const getApiBaseUrl = () => {
+  const hostname = window.location.hostname;
+  
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:4000/api';
+  } else if (hostname.includes('staging')) {
+    return 'https://web-staging.partaiprima.id/api';
+  } else if (hostname.includes('partaiprima.id')) {
+    return 'https://web.partaiprima.id/api';
+  } else {
+    // Fallback untuk development
+    return 'http://localhost:4000/api';
+  }
+};
+
 const api = axios.create({
-  baseURL: 'http://localhost:4000/api',
+  baseURL: getApiBaseUrl(),
   timeout: 60000, // 60 detik untuk proses OCR yang membutuhkan waktu lama
 });
 

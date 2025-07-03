@@ -20,6 +20,25 @@ if (!OCR_API_KEY) {
 }
 
 /**
+ * Generate base URL berdasarkan environment
+ * @param {Object} req - Request object
+ * @returns {string} Base URL
+ */
+const generateBaseUrl = (req) => {
+  const hostname = req.get('host');
+  
+  if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
+    return `${req.protocol}://${hostname}`;
+  } else if (hostname.includes('staging')) {
+    return `https://web-staging.partaiprima.id`;
+  } else if (hostname.includes('partaiprima.id')) {
+    return `https://web.partaiprima.id`;
+  } else {
+    return `${req.protocol}://${hostname}`;
+  }
+};
+
+/**
  * Memproses gambar KTP menggunakan API OCR eksternal
  * @param {Object} req - Request object
  * @param {Object} res - Response object
@@ -100,8 +119,8 @@ export const processKtp = async (req, res) => {
         const fileName = `ktp-${uuidv4()}.jpg`;
         const outPath = path.join(processedDir, fileName);
         fs.writeFileSync(outPath, Buffer.from(ocrData.enhanced_image, 'base64'));
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
-        ocrData.processed_image_url = `${baseUrl}/static/processed/${fileName}`;
+        const baseUrl = generateBaseUrl(req);
+        ocrData.processed_image_url = `${baseUrl}/api/static/processed/${fileName}`;
         console.log('Enhanced image saved to:', outPath);
         console.log('Generated processed_image_url:', ocrData.processed_image_url);
       } catch (errSave) {
@@ -168,8 +187,8 @@ export const processKtpBase64 = async (req, res) => {
         const fileName = `ktp-${uuidv4()}.jpg`;
         const outPath = path.join(processedDir, fileName);
         fs.writeFileSync(outPath, Buffer.from(ocrData.enhanced_image, 'base64'));
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
-        ocrData.processed_image_url = `${baseUrl}/static/processed/${fileName}`;
+        const baseUrl = generateBaseUrl(req);
+        ocrData.processed_image_url = `${baseUrl}/api/static/processed/${fileName}`;
         console.log('Enhanced image saved to:', outPath);
         console.log('Generated processed_image_url:', ocrData.processed_image_url);
       } catch (errSave) {
