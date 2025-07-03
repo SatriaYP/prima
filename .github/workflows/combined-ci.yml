@@ -87,26 +87,26 @@ jobs:
         
         # Create directories with proper permissions
         ssh ${{ secrets.SSH_USER }}@212.85.26.97 "
-          sudo mkdir -p /var/www/prima-staging/api-v2
-          sudo mkdir -p /var/www/prima-staging/web-vue
-          sudo chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} /var/www/prima-staging/
-          sudo chmod -R 755 /var/www/prima-staging/
+          sudo mkdir -p /var/www/prima-staging-v2/api
+          sudo mkdir -p /var/www/prima-staging-v2/web
+          sudo chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} /var/www/prima-staging-v2/
+          sudo chmod -R 755 /var/www/prima-staging-v2/
         "
         
         # Deploy API v2
-        rsync -avz --delete ./api-v2/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima-staging/api-v2/
+        rsync -avz --delete ./api-v2/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima-staging-v2/api/
         
         # Deploy Web
         cd web
         yarn install --frozen-lockfile
         yarn build
-        rsync -avz --delete dist/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima-staging/web-vue/
+        rsync -avz --delete dist/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima-staging-v2/web/
         
         # Restart services
         ssh ${{ secrets.SSH_USER }}@212.85.26.97 "
-          cd /var/www/prima-staging/api-v2
+          cd /var/www/prima-staging-v2/api
           npm install --production
-          pm2 restart prima-api-staging || pm2 start app.js --name prima-api-staging --cwd /var/www/prima-staging/api-v2 --env staging
+          pm2 restart prima-api-staging-v2 || pm2 start app.js --name prima-api-staging-v2 --cwd /var/www/prima-staging-v2/api --env staging
           
           # Reload nginx
           sudo systemctl reload nginx
@@ -134,26 +134,26 @@ jobs:
         
         # Create directories with proper permissions
         ssh ${{ secrets.SSH_USER }}@212.85.26.97 "
-          sudo mkdir -p /var/www/prima/api-v2
-          sudo mkdir -p /var/www/prima/web-vue
-          sudo chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} /var/www/prima/
-          sudo chmod -R 755 /var/www/prima/
+          sudo mkdir -p /var/www/prima-v2/api
+          sudo mkdir -p /var/www/prima-v2/web
+          sudo chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} /var/www/prima-v2/
+          sudo chmod -R 755 /var/www/prima-v2/
         "
         
         # Deploy API v2
-        rsync -avz --delete ./api-v2/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima/api-v2/
+        rsync -avz --delete ./api-v2/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima-v2/api/
         
         # Deploy Web
         cd web
         yarn install --frozen-lockfile
         yarn build
-        rsync -avz --delete dist/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima/web-vue/
+        rsync -avz --delete dist/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima-v2/web/
         
         # Restart services
         ssh ${{ secrets.SSH_USER }}@212.85.26.97 "
-          cd /var/www/prima/api-v2
+          cd /var/www/prima-v2/api
           npm install --production
-          pm2 restart prima-api || pm2 start app.js --name prima-api --cwd /var/www/prima/api-v2 --env production
+          pm2 restart prima-api-v2 || pm2 start app.js --name prima-api-v2 --cwd /var/www/prima-v2/api --env production
           
           # Reload nginx
           sudo systemctl reload nginx
