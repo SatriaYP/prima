@@ -104,10 +104,18 @@ jobs:
         ssh ${{ secrets.SSH_USER }}@212.85.26.97 "
           cd /var/www/prima-web-staging/api
           npm install --production
-          pm2 restart prima-web-api-staging || pm2 start app.js --name prima-web-api-staging
           
-          # Reload nginx for web (using sudo without password)
-          systemctl reload nginx
+          # Verify file exists before starting PM2
+          if [ -f src/app.js ]; then
+            pm2 restart prima-web-api-staging || pm2 start src/app.js --name prima-web-api-staging
+          else
+            echo 'ERROR: src/app.js not found!'
+            ls -la src/
+            exit 1
+          fi
+          
+          # Reload nginx for web
+          sudo systemctl reload nginx
         "
         
   deploy-production:
@@ -130,10 +138,10 @@ jobs:
       run: |
         echo "Deploying to production server 212.85.26.97"
         
-        # Create production directories if not exist (using sudo without password)
+        # Create production directories if not exist
         ssh ${{ secrets.SSH_USER }}@212.85.26.97 "
-          mkdir -p /var/www/prima-web/{api,web}
-          chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} /var/www/prima-web
+          sudo mkdir -p /var/www/prima-web/{api,web}
+          sudo chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} /var/www/prima-web
         "
         
         # Deploy API v2
@@ -149,8 +157,16 @@ jobs:
         ssh ${{ secrets.SSH_USER }}@212.85.26.97 "
           cd /var/www/prima-web/api
           npm install --production
-          pm2 restart prima-web-api || pm2 start app.js --name prima-web-api
           
-          # Reload nginx for web (using sudo without password)
-          systemctl reload nginx
+          # Verify file exists before starting PM2
+          if [ -f src/app.js ]; then
+            pm2 restart prima-web-api || pm2 start src/app.js --name prima-web-api
+          else
+            echo 'ERROR: src/app.js not found!'
+            ls -la src/
+            exit 1
+          fi
+          
+          # Reload nginx for web
+          sudo systemctl reload nginx
         " 

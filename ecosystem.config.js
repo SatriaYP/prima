@@ -3,7 +3,7 @@ module.exports = {
     // Production API
     {
       name: 'prima-web-api',
-      script: '/var/www/prima-web/api/src/app.js',
+      script: 'src/app.js',
       cwd: '/var/www/prima-web/api',
       instances: 1,
       autorestart: true,
@@ -24,7 +24,7 @@ module.exports = {
     // Staging API
     {
       name: 'prima-web-api-staging',
-      script: '/var/www/prima-web-staging/api/src/app.js',
+      script: 'src/app.js',
       cwd: '/var/www/prima-web-staging/api',
       instances: 1,
       autorestart: true,
