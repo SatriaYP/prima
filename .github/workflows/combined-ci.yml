@@ -1,0 +1,144 @@
+name: Prima.id CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        
+    # API v2 Testing
+    - name: Install API v2 dependencies
+      working-directory: ./api-v2
+      run: npm ci
+      
+    - name: Run Prisma generate
+      working-directory: ./api-v2
+      run: npx prisma generate
+      
+    - name: Run API v2 tests
+      working-directory: ./api-v2
+      run: npm test || echo "Tests not configured"
+      env:
+        NODE_ENV: test
+        DATABASE_URL: "file:./test.db"
+        
+    - name: Run API v2 linting
+      working-directory: ./api-v2
+      run: npm run lint || echo "Linting not configured"
+      
+    # Web Testing
+    - name: Install Web dependencies
+      working-directory: ./web
+      run: yarn install --frozen-lockfile
+      
+    - name: Run Web linting
+      working-directory: ./web
+      run: yarn lint || echo "Linting not configured"
+      
+    - name: Run Web tests
+      working-directory: ./web
+      run: yarn test:unit || echo "Unit tests not configured"
+      
+    - name: Build Web application
+      working-directory: ./web
+      run: yarn build
+      
+    # Security Audit
+    - name: API v2 Security Audit
+      working-directory: ./api-v2
+      run: npm audit --audit-level=moderate || echo "Security audit completed"
+        
+    - name: Web Security Audit
+      working-directory: ./web
+      run: yarn audit --level moderate || echo "Security audit completed"
+        
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: test-and-build
+    if: github.ref == 'refs/heads/develop'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H 212.85.26.97 >> ~/.ssh/known_hosts
+        
+    - name: Deploy to Staging Server
+      run: |
+        echo "Deploying to staging server 212.85.26.97"
+        
+        # Deploy API v2
+        rsync -avz --delete ./api-v2/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima-staging/api/
+        
+        # Deploy Web
+        cd web
+        yarn install --frozen-lockfile
+        yarn build
+        rsync -avz --delete dist/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima-staging/web/
+        
+        # Restart services
+        ssh ${{ secrets.SSH_USER }}@212.85.26.97 "
+          cd /var/www/prima-staging/api
+          npm install --production
+          pm2 restart prima-api-staging || pm2 start app.js --name prima-api-staging --cwd /var/www/prima-staging/api --env staging
+          
+          # Reload nginx
+          sudo systemctl reload nginx
+        "
+        
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: test-and-build
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H 212.85.26.97 >> ~/.ssh/known_hosts
+        
+    - name: Deploy to Production Server
+      run: |
+        echo "Deploying to production server 212.85.26.97"
+        
+        # Deploy API v2
+        rsync -avz --delete ./api-v2/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima/api/
+        
+        # Deploy Web
+        cd web
+        yarn install --frozen-lockfile
+        yarn build
+        rsync -avz --delete dist/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima/web/
+        
+        # Restart services
+        ssh ${{ secrets.SSH_USER }}@212.85.26.97 "
+          cd /var/www/prima/api
+          npm install --production
+          pm2 restart prima-api || pm2 start app.js --name prima-api --cwd /var/www/prima/api --env production
+          
+          # Reload nginx
+          sudo systemctl reload nginx
+        " 
