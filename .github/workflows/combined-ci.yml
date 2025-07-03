@@ -120,6 +120,14 @@ jobs:
         yarn build
         rsync -avz --delete dist/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima-web-staging/web/
         
+        # Setup required directories
+        ssh ${{ secrets.SSH_USER }}@212.85.26.97 "
+          mkdir -p /var/www/prima-web-staging/api/uploads/temp
+          mkdir -p /var/www/prima-web-staging/api/public/processed
+          chmod 755 /var/www/prima-web-staging/api/uploads/temp
+          chmod 755 /var/www/prima-web-staging/api/public/processed
+        "
+        
         # Restart services
         ssh ${{ secrets.SSH_USER }}@212.85.26.97 "
           cd /var/www/prima-web-staging/api
@@ -172,6 +180,14 @@ jobs:
         yarn install --frozen-lockfile
         yarn build
         rsync -avz --delete dist/ ${{ secrets.SSH_USER }}@212.85.26.97:/var/www/prima-web/web/
+        
+        # Setup required directories
+        ssh ${{ secrets.SSH_USER }}@212.85.26.97 "
+          mkdir -p /var/www/prima-web/api/uploads/temp
+          mkdir -p /var/www/prima-web/api/public/processed
+          chmod 755 /var/www/prima-web/api/uploads/temp
+          chmod 755 /var/www/prima-web/api/public/processed
+        "
         
         # Restart services
         ssh ${{ secrets.SSH_USER }}@212.85.26.97 "
