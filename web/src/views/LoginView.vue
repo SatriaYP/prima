@@ -11,7 +11,28 @@
         </div>
         <div class="input-group">
           <label>Password</label>
-          <input v-model="password" type="password" required autocomplete="current-password" />
+          <div class="password-input-container">
+            <input 
+              v-model="password" 
+              :type="showPassword ? 'text' : 'password'" 
+              required 
+              autocomplete="current-password" 
+            />
+            <button 
+              type="button" 
+              class="password-toggle" 
+              @click="togglePassword"
+              :title="showPassword ? 'Sembunyikan password' : 'Tampilkan password'"
+            >
+              <svg v-if="showPassword" class="eye-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
+              </svg>
+              <svg v-else class="eye-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+              </svg>
+            </button>
+          </div>
         </div>
         <button type="submit" class="login-btn">Login</button>
         <div v-if="error" class="error">{{ error }}</div>
@@ -34,7 +55,8 @@ export default {
     return {
       username: '',
       password: '',
-      error: ''
+      error: '',
+      showPassword: false
     };
   },
   methods: {
@@ -52,6 +74,9 @@ export default {
       } catch (err) {
         this.error = err.response?.data?.message || 'Login gagal. Periksa username/password.';
       }
+    },
+    togglePassword() {
+      this.showPassword = !this.showPassword;
     }
   }
 };
@@ -120,6 +145,50 @@ export default {
 }
 .input-group input:focus {
   border: 1.5px solid #0057B8;
+}
+
+.password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-container input {
+  padding-right: 45px;
+  width: 100%;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: #666;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-toggle:hover {
+  background: #f5f5f5;
+  color: #0057B8;
+}
+
+.password-toggle:focus {
+  outline: none;
+  background: #f0f8ff;
+  color: #0057B8;
+}
+
+.eye-icon {
+  width: 20px;
+  height: 20px;
 }
 .login-btn {
   background: #0057B8;
