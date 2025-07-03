@@ -130,7 +130,6 @@
 <script>
 /* eslint-disable vue/no-mutating-props */
 import api from '../../services/api';
-import axios from 'axios';
 
 export default {
   name: 'KtpUploadStep',
@@ -188,8 +187,8 @@ export default {
     },
     async fetchRegionOptions(query) {
       try {
-        // Gunakan API Wilayah untuk search region
-        const res = await axios.get(`https://wilayah.partaiprima.id/search?query=${encodeURIComponent(query)}`);
+        // Gunakan backend API untuk search region
+        const res = await api.get(`/regions/search?query=${encodeURIComponent(query)}`);
         this.regionOptions = res.data;
       } catch (e) { 
         console.error('Error fetching region options:', e);
