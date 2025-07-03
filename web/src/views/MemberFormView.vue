@@ -60,6 +60,7 @@
 
 <script>
 import api from '../services/api';
+import axios from 'axios';
 import KtpUploadStep from '../components/member/KtpUploadStep.vue';
 import RegionSelectionStep from '../components/member/RegionSelectionStep.vue';
 import KtaGenerationStep from '../components/member/KtaGenerationStep.vue';
@@ -146,9 +147,12 @@ export default {
     },
     async fetchProvinsi() {
       try {
-        const res = await api.get('/regions/provinces');
+        const res = await axios.get('https://wilayah.partaiprima.id/provinsi.json');
         this.provinsiList = res.data;
-      } catch (e) { /* no-op */ }
+      } catch (e) { 
+        console.error('Error fetching provinces:', e);
+        this.provinsiList = [];
+      }
     },
     async fetchKabupaten() {
       this.form.kabupatenId = '';
@@ -159,9 +163,12 @@ export default {
       this.kelurahanList = [];
       if (!this.form.provinsiId) return;
       try {
-        const res = await api.get(`/regions/regencies?provinceId=${this.form.provinsiId}`);
+        const res = await axios.get(`https://wilayah.partaiprima.id/regencies/${this.form.provinsiId}.json`);
         this.kabupatenList = res.data;
-      } catch (e) { /* no-op */ }
+      } catch (e) { 
+        console.error('Error fetching regencies:', e);
+        this.kabupatenList = [];
+      }
     },
     async fetchKecamatan() {
       this.form.kecamatanId = '';
@@ -170,18 +177,24 @@ export default {
       this.kelurahanList = [];
       if (!this.form.kabupatenId) return;
       try {
-        const res = await api.get(`/regions/districts?regencyId=${this.form.kabupatenId}`);
+        const res = await axios.get(`https://wilayah.partaiprima.id/districts/${this.form.kabupatenId}.json`);
         this.kecamatanList = res.data;
-      } catch (e) { /* no-op */ }
+      } catch (e) { 
+        console.error('Error fetching districts:', e);
+        this.kecamatanList = [];
+      }
     },
     async fetchKelurahan() {
       this.form.kelurahanId = '';
       this.kelurahanList = [];
       if (!this.form.kecamatanId) return;
       try {
-        const res = await api.get(`/regions/villages?districtId=${this.form.kecamatanId}`);
+        const res = await axios.get(`https://wilayah.partaiprima.id/villages/${this.form.kecamatanId}.json`);
         this.kelurahanList = res.data;
-      } catch (e) { /* no-op */ }
+      } catch (e) { 
+        console.error('Error fetching villages:', e);
+        this.kelurahanList = [];
+      }
     },
     generateKta() {
       // Dummy KTA: <prov><kab><kec>0001
