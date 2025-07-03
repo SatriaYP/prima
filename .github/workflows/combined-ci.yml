@@ -30,14 +30,24 @@ jobs:
       
     - name: Run API v2 tests
       working-directory: ./api-v2
-      run: npm test || echo "Tests not configured"
+      run: |
+        if npm run | grep -q "test"; then
+          npm test
+        else
+          echo "No test script found, skipping tests"
+        fi
       env:
         NODE_ENV: test
         DATABASE_URL: "file:./test.db"
         
     - name: Run API v2 linting
       working-directory: ./api-v2
-      run: npm run lint || echo "Linting not configured"
+      run: |
+        if npm run | grep -q "lint"; then
+          npm run lint
+        else
+          echo "No lint script found, skipping linting"
+        fi
       
     # Web Testing
     - name: Install Web dependencies
@@ -46,11 +56,21 @@ jobs:
       
     - name: Run Web linting
       working-directory: ./web
-      run: yarn lint || echo "Linting not configured"
+      run: |
+        if yarn run | grep -q "lint"; then
+          yarn lint
+        else
+          echo "No lint script found, skipping linting"
+        fi
       
     - name: Run Web tests
       working-directory: ./web
-      run: yarn test:unit || echo "Unit tests not configured"
+      run: |
+        if yarn run | grep -q "test:unit"; then
+          yarn test:unit
+        else
+          echo "No test:unit script found, skipping tests"
+        fi
       
     - name: Build Web application
       working-directory: ./web
