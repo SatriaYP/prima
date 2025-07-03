@@ -68,3 +68,18 @@ export const getVillages = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Search region name (provinsi) simple contains query param
+export const searchRegions = async (req, res) => {
+  const { query } = req.query;
+  if (!query || query.length < 2) {
+    return res.json([]);
+  }
+  try {
+    const provinces = await fetchFromWilayahApi('/provinsi.json');
+    const result = provinces.filter(p => p.name.toLowerCase().includes(query.toLowerCase()));
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

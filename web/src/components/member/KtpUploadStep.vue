@@ -22,7 +22,7 @@
           <div class="ktp-image-container">
             <h4>Foto Hasil Proses</h4>
             <template v-if="form.fotoKtpProcessedUrl">
-              <img :src="form.fotoKtpProcessedUrl" alt="KTP hasil proses" class="ktp-preview processed" />
+              <img :src="form.fotoKtpProcessedUrl" :key="form.fotoKtpProcessedUrl" alt="KTP hasil proses" class="ktp-preview processed" />
               <button type="button" class="btn btn-blue btn-sm" @click="downloadProcessedImage">Download Foto</button>
             </template>
             <template v-else>
@@ -245,6 +245,7 @@ export default {
             processedUrl = base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`;
           }
           if (processedUrl) {
+        console.log('Processed image URL:', processedUrl);
             this.$emit('update:form', {
               ...this.form,
               fotoKtpProcessedUrl: processedUrl

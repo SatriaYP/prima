@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { v4 as uuidv4 } from 'uuid';
 
 // Mendapatkan direktori saat ini
 const __filename = fileURLToPath(import.meta.url);
@@ -91,7 +92,23 @@ export const processKtp = async (req, res) => {
     });
 
     // Kembalikan hasil OCR ke frontend
-    return res.json(response.data);
+    let ocrData = response.data;
+    if (ocrData.enhanced_image) {
+      try {
+        const processedDir = path.join(process.cwd(), 'public', 'processed');
+        fs.mkdirSync(processedDir, { recursive: true });
+        const fileName = `ktp-${uuidv4()}.jpg`;
+        const outPath = path.join(processedDir, fileName);
+        fs.writeFileSync(outPath, Buffer.from(ocrData.enhanced_image, 'base64'));
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        ocrData.processed_image_url = `${baseUrl}/static/processed/${fileName}`;
+        console.log('Enhanced image saved to:', outPath);
+        console.log('Generated processed_image_url:', ocrData.processed_image_url);
+      } catch (errSave) {
+        console.error('Gagal menyimpan enhanced image:', errSave);
+      }
+    }
+    return res.json(ocrData);
   } catch (error) {
     console.error('Error memproses KTP:', error.message);
     console.error('Error detail:', error);
@@ -143,7 +160,23 @@ export const processKtpBase64 = async (req, res) => {
     });
 
     // Kembalikan hasil OCR ke frontend
-    return res.json(response.data);
+    let ocrData = response.data;
+    if (ocrData.enhanced_image) {
+      try {
+        const processedDir = path.join(process.cwd(), 'public', 'processed');
+        fs.mkdirSync(processedDir, { recursive: true });
+        const fileName = `ktp-${uuidv4()}.jpg`;
+        const outPath = path.join(processedDir, fileName);
+        fs.writeFileSync(outPath, Buffer.from(ocrData.enhanced_image, 'base64'));
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        ocrData.processed_image_url = `${baseUrl}/static/processed/${fileName}`;
+        console.log('Enhanced image saved to:', outPath);
+        console.log('Generated processed_image_url:', ocrData.processed_image_url);
+      } catch (errSave) {
+        console.error('Gagal menyimpan enhanced image:', errSave);
+      }
+    }
+    return res.json(ocrData);
   } catch (error) {
     console.error('Error memproses KTP base64:', error.message);
     

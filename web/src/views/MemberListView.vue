@@ -16,38 +16,52 @@
 
 <script>
 import api from '../services/api';
+import MemberFilter from '../components/MemberFilter.vue';
+import MemberTable from '../components/MemberTable.vue';
 
 export default {
   name: 'MemberListView',
+  components: { MemberFilter, MemberTable },
   data() {
     return {
-      members: []
+      members: [],
+      search: '',
+      page: 1,
+      pageSize: 10
     };
+  },
+  computed: {
+    filteredMembers() {
+      if (!this.search) return this.members;
+      return this.members.filter(m => m.name.toLowerCase().includes(this.search.toLowerCase()));
+    },
+    totalPages() {
+      return Math.max(1, Math.ceil(this.filteredMembers.length / this.pageSize));
+    },
+    pagedMembers() {
+      const start = (this.page - 1) * this.pageSize;
+      return this.filteredMembers.slice(start, start + this.pageSize);
+    }
   },
   mounted() {
     this.fetchMembers();
   },
   methods: {
     async fetchMembers() {
-      // Ganti endpoint sesuai backend API
       try {
         const res = await api.get('/members');
         this.members = res.data;
       } catch (err) {
-        // Error handling
         this.members = [];
       }
     },
     viewDetail(member) {
-      // Navigasi ke halaman detail anggota
       this.$router.push({ name: 'MemberDetail', params: { id: member.id } });
     },
     editMember(member) {
-      // Navigasi ke halaman edit anggota
       this.$router.push({ name: 'MemberEdit', params: { id: member.id } });
     },
     addMember() {
-      // Navigasi ke halaman tambah anggota
       this.$router.push({ name: 'MemberAdd' });
     }
   }

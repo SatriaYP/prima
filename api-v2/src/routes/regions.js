@@ -8,5 +8,7 @@ router.get('/provinces', regionController.getProvinces);
 router.get('/regencies', regionController.getRegencies);
 router.get('/districts', regionController.getDistricts);
 router.get('/villages', regionController.getVillages);
+// Search region by name (simple across provinces)
+router.get('/search', regionController.searchRegions);
 
 export default router;

@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import authRoutes from './routes/auth.js';
 import memberRoutes from './routes/member.js';
 import officialRoutes from './routes/official.js';
@@ -14,6 +15,9 @@ const port = process.env.PORT || 4000;
 
 app.use(cors());
 app.use(express.json());
+
+// Serve processed images under /static
+app.use('/static', express.static(path.join(process.cwd(), 'public')));
 
 app.get('/', (req, res) => {
   res.json({
