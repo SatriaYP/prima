@@ -1,1 +1,0 @@
-{"isEntrypoint":false,"deps":["sqlite3|lib/src/database.dart"],"parts":[],"conditionalDeps":[],"sdkDeps":[],"hasMain":false}
