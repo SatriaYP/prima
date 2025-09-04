@@ -1,23 +1,30 @@
 <template>
   <div class="member-form-container">
-    <h1>{{ isEdit ? 'Edit Anggota' : 'Tambah Anggota' }}</h1>
-    
+    <h1>{{ isEdit ? "Edit Anggota" : "Tambah Anggota" }}</h1>
+
     <!-- Step Indicator -->
     <div class="step-indicator">
-      <div 
-        v-for="(stepName, index) in ['Upload KTP & Data Diri', 'Wilayah Pendaftaran', 'Cetak KTA']"
+      <div
+        v-for="(stepName, index) in [
+          'Upload KTP & Data Diri',
+          'Wilayah Pendaftaran',
+          'Cetak KTA',
+        ]"
         :key="index"
-        :class="['step', { 'active': currentStep === index, 'completed': currentStep > index }]"
+        :class="[
+          'step',
+          { active: currentStep === index, completed: currentStep > index },
+        ]"
         @click="goToStep(index)"
       >
         <div class="step-number">{{ index + 1 }}</div>
         <div class="step-name">{{ stepName }}</div>
       </div>
     </div>
-    
+
     <form @submit.prevent="handleSubmit">
       <!-- Step 0: Upload KTP & Data Diri -->
-      <ktp-upload-step 
+      <ktp-upload-step
         v-if="currentStep === 0"
         :form="form"
         :provinsiList="provinsiList"
@@ -27,9 +34,9 @@
         @fetch-kabupaten="fetchKabupaten"
         @fetch-kecamatan="fetchKecamatan"
       />
-      
+
       <!-- Step 1: Wilayah Pendaftaran -->
-      <region-selection-step 
+      <region-selection-step
         v-if="currentStep === 1"
         :form="form"
         :provinsiList="provinsiList"
@@ -43,72 +50,81 @@
         @fetch-kecamatan="fetchKecamatan"
         @fetch-kelurahan="fetchKelurahan"
       />
-      
+
       <!-- Step 2: Cetak KTA -->
-      <kta-generation-step 
+      <kta-generation-step
         v-if="currentStep === 2"
         :form="form"
         :isEdit="isEdit"
         @update:form="updateForm"
         @prev-step="prevStep"
       />
-      
+
       <div v-if="error" class="error">{{ error }}</div>
     </form>
   </div>
 </template>
 
 <script>
-import api from '../services/api';
-import axios from 'axios';
-import KtpUploadStep from '../components/member/KtpUploadStep.vue';
-import RegionSelectionStep from '../components/member/RegionSelectionStep.vue';
-import KtaGenerationStep from '../components/member/KtaGenerationStep.vue';
+// import api from '../services/api';
+import api from "@/services/api.service";
+import axios from "axios";
+import KtpUploadStep from "../components/member/KtpUploadStep.vue";
+import RegionSelectionStep from "../components/member/RegionSelectionStep.vue";
+import KtaGenerationStep from "../components/member/KtaGenerationStep.vue";
 
 export default {
-  name: 'MemberFormView',
+  name: "MemberFormView",
   components: {
     KtpUploadStep,
     RegionSelectionStep,
-    KtaGenerationStep
+    KtaGenerationStep,
   },
   data() {
     return {
       currentStep: 0,
       isEdit: !!this.$route.params.id,
       form: {
-        nik: '',
-        nama: '',
-        tempatLahir: '',
-        tanggalLahir: '',
-        jenisKelamin: '',
-        statusPerkawinan: '',
-        statusPekerjaan: '',
-        minatBakat: '',
-        alamat: '',
-        provinsiId: '',
-        kabupatenId: '',
-        kecamatanId: '',
-        kelurahanId: '',
-        noKta: '',
-        penerbitKta: 'DPP',
+        nik: "",
+        nama: "",
+        tempatLahir: "",
+        tanggalLahir: "",
+        jenisKelamin: "",
+        statusPerkawinan: "",
+        statusPekerjaan: "",
+        minatBakat: "",
+        alamat: "",
+        provinsiId: "",
+        kabupatenId: "",
+        kecamatanId: "",
+        kelurahanId: "",
+        noKta: "",
+        penerbitKta: "DPP",
         fotoKtp: null,
-        fotoKtpUrl: '',
-        fotoKtpProcessedUrl: '',
-        isConfirmed: false
+        fotoKtpUrl: "",
+        fotoKtpProcessedUrl: "",
+        isConfirmed: false,
       },
       provinsiList: [],
       kabupatenList: [],
       kecamatanList: [],
       kelurahanList: [],
-      error: ''
+      error: "",
     };
   },
   watch: {
-    'form.provinsiId'(val) { if (val) this.fetchKabupaten(); },
-    'form.kabupatenId'(val) { if (val) this.fetchKecamatan(); },
-    'form.kecamatanId'(val) { if (val) this.fetchKelurahan(); },
-    'form.kelurahanId'() { this.generateKta(); }
+    "form.provinsiId"(val) {
+      if (val) this.fetchKabupaten();
+    },
+    "form.kabupatenId"(val) {
+      if (val) this.fetchKecamatan();
+    },
+    "form.kecamatanId"(val) {
+      if (val) this.fetchKelurahan();
+    },
+    "form.kelurahanId"() {
+      this.generateKta();
+    },
   },
   mounted() {
     if (this.$route.params.id) {
@@ -142,97 +158,117 @@ export default {
         const res = await api.get(`/members/${this.$route.params.id}`);
         this.form = { ...this.form, ...res.data };
       } catch (err) {
-        this.error = 'Gagal memuat data anggota';
+        this.error = "Gagal memuat data anggota";
       }
     },
     async fetchProvinsi() {
       try {
-        const res = await axios.get('https://wilayah.partaiprima.id/provinsi.json');
+        const res = await axios.get(
+          "https://wilayah.partaiprima.id/provinsi.json"
+        );
         this.provinsiList = res.data;
-      } catch (e) { 
-        console.error('Error fetching provinces:', e);
+      } catch (e) {
+        console.error("Error fetching provinces:", e);
         this.provinsiList = [];
       }
     },
     async fetchKabupaten() {
-      this.form.kabupatenId = '';
-      this.form.kecamatanId = '';
-      this.form.kelurahanId = '';
+      this.form.kabupatenId = "";
+      this.form.kecamatanId = "";
+      this.form.kelurahanId = "";
       this.kabupatenList = [];
       this.kecamatanList = [];
       this.kelurahanList = [];
       if (!this.form.provinsiId) return;
       try {
-        const res = await axios.get(`https://wilayah.partaiprima.id/regencies/${this.form.provinsiId}.json`);
+        const res = await axios.get(
+          `https://wilayah.partaiprima.id/regencies/${this.form.provinsiId}.json`
+        );
         this.kabupatenList = res.data;
-      } catch (e) { 
-        console.error('Error fetching regencies:', e);
+      } catch (e) {
+        console.error("Error fetching regencies:", e);
         this.kabupatenList = [];
       }
     },
     async fetchKecamatan() {
-      this.form.kecamatanId = '';
-      this.form.kelurahanId = '';
+      this.form.kecamatanId = "";
+      this.form.kelurahanId = "";
       this.kecamatanList = [];
       this.kelurahanList = [];
       if (!this.form.kabupatenId) return;
       try {
-        const res = await axios.get(`https://wilayah.partaiprima.id/districts/${this.form.kabupatenId}.json`);
+        const res = await axios.get(
+          `https://wilayah.partaiprima.id/districts/${this.form.kabupatenId}.json`
+        );
         this.kecamatanList = res.data;
-      } catch (e) { 
-        console.error('Error fetching districts:', e);
+      } catch (e) {
+        console.error("Error fetching districts:", e);
         this.kecamatanList = [];
       }
     },
     async fetchKelurahan() {
-      this.form.kelurahanId = '';
+      this.form.kelurahanId = "";
       this.kelurahanList = [];
       if (!this.form.kecamatanId) return;
       try {
-        const res = await axios.get(`https://wilayah.partaiprima.id/villages/${this.form.kecamatanId}.json`);
+        const res = await axios.get(
+          `https://wilayah.partaiprima.id/villages/${this.form.kecamatanId}.json`
+        );
         this.kelurahanList = res.data;
-      } catch (e) { 
-        console.error('Error fetching villages:', e);
+      } catch (e) {
+        console.error("Error fetching villages:", e);
         this.kelurahanList = [];
       }
     },
     generateKta() {
       // Dummy KTA: <prov><kab><kec>0001
-      if (!this.form.provinsiId || !this.form.kabupatenId || !this.form.kecamatanId || !this.form.kelurahanId) {
-        this.form.noKta = '';
+      if (
+        !this.form.provinsiId ||
+        !this.form.kabupatenId ||
+        !this.form.kecamatanId ||
+        !this.form.kelurahanId
+      ) {
+        this.form.noKta = "";
         return;
       }
-      const prov = this.form.provinsiId.slice(0,2);
-      const kab = this.form.kabupatenId.slice(2,4);
-      const kec = this.form.kecamatanId.slice(4,6);
+      const prov = this.form.provinsiId.slice(0, 2);
+      const kab = this.form.kabupatenId.slice(2, 4);
+      const kec = this.form.kecamatanId.slice(4, 6);
       this.form.noKta = `${prov}${kab}${kec}0001`;
     },
     updateForm(updated) {
-      console.log('🔄 Parent updateForm called with:', updated);
-      console.log('🔄 Current form before update:', this.form);
+      console.log("🔄 Parent updateForm called with:", updated);
+      console.log("🔄 Current form before update:", this.form);
       this.form = { ...this.form, ...updated };
-      console.log('🔄 Form after update:', this.form);
-      console.log('🔄 fotoKtpProcessedUrl after update:', this.form.fotoKtpProcessedUrl);
+      console.log("🔄 Form after update:", this.form);
+      console.log(
+        "🔄 fotoKtpProcessedUrl after update:",
+        this.form.fotoKtpProcessedUrl
+      );
     },
     async handleSubmit() {
-      this.error = '';
+      this.error = "";
       try {
         const formData = new FormData();
         Object.entries(this.form).forEach(([k, v]) => {
-          if (k === 'fotoKtpUrl' || k === 'fotoKtpProcessedUrl') return;
-          formData.append(k, v ?? '');
+          if (k === "fotoKtpUrl" || k === "fotoKtpProcessedUrl") return;
+          formData.append(k, v ?? "");
         });
         if (this.isEdit) {
-          await api.put(`/members/${this.$route.params.id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' }});
+          await api.put(`/members/${this.$route.params.id}`, formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
         } else {
-          await api.post('/members', formData, { headers: { 'Content-Type': 'multipart/form-data' }});
+          await api.post("/members", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
         }
-        this.$router.push('/members');
+        this.$router.push("/members");
       } catch (err) {
-        this.error = err.response?.data?.message || 'Gagal menyimpan data';
+        this.error = err.response?.data?.message || "Gagal menyimpan data";
       }
-    }
-  }
+    },
+  },
 };
 </script>
 
@@ -276,7 +312,8 @@ label {
   margin-bottom: 4px;
 }
 
-input, select {
+input,
+select {
   padding: 10px 12px;
   font-size: 1em;
   border-radius: 8px;
@@ -296,7 +333,7 @@ input[readonly] {
 }
 
 .error {
-  color: #E74C3C;
+  color: #e74c3c;
   margin-top: 12px;
 }
 
@@ -309,7 +346,7 @@ input[readonly] {
 }
 
 .step-indicator::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 15px;
   left: 40px;
@@ -361,8 +398,8 @@ input[readonly] {
 }
 
 .step.completed .step-number {
-  background: #4CAF50;
-  border-color: #4CAF50;
+  background: #4caf50;
+  border-color: #4caf50;
   color: white;
 }
 
@@ -371,7 +408,7 @@ input[readonly] {
     flex-direction: column;
     gap: 0;
   }
-  
+
   .step-name {
     font-size: 0.7em;
     max-width: 70px;

@@ -1,89 +1,106 @@
-import { createRouter, createWebHistory } from 'vue-router';
-import LoginView from '../views/LoginView.vue';
-import DashboardView from '../views/DashboardView.vue';
-import MemberListView from '../views/MemberListView.vue';
-import MemberDetailView from '../views/MemberDetailView.vue';
-import MemberFormView from '../views/MemberFormView.vue';
-import PengurusListView from '../views/PengurusListView.vue';
-import PengurusDetailView from '../views/PengurusDetailView.vue';
-import PengurusFormView from '../views/PengurusFormView.vue';
-import KepengurusanView from '../views/KepengurusanView.vue';
+import { createRouter, createWebHistory } from "vue-router";
+// import LoginView from "../views/LoginView.vue";
+// import DashboardView from "../views/DashboardView.vue";
+// import MemberListView from "../views/MemberListView.vue";
+// import MemberDetailView from "../views/MemberDetailView.vue";
+// import MemberFormView from "../views/MemberFormView.vue";
+// import PengurusListView from "../views/PengurusListView.vue";
+// import PengurusDetailView from "../views/PengurusDetailView.vue";
+// import PengurusFormView from "../views/PengurusFormView.vue";
+// import KepengurusanView from "../views/KepengurusanView.vue";
+import routes from "./routes";
+import { isLoggedIn } from "@/utils/token.helper";
 
-const routes = [
-  {
-    path: '/',
-    name: 'Login',
-    component: LoginView
-  },
-  {
-    path: '/dashboard',
-    name: 'Dashboard',
-    component: DashboardView
-  },
-  {
-    path: '/members',
-    name: 'MemberList',
-    component: MemberListView
-  },
-  {
-    path: '/members/add',
-    name: 'MemberAdd',
-    component: MemberFormView
-  },
-  {
-    path: '/members/:id',
-    name: 'MemberDetail',
-    component: MemberDetailView
-  },
-  {
-    path: '/members/:id/edit',
-    name: 'MemberEdit',
-    component: MemberFormView
-  },
-  {
-    path: '/pengurus',
-    name: 'PengurusList',
-    component: PengurusListView
-  },
-  {
-    path: '/pengurus/add',
-    name: 'PengurusAdd',
-    component: PengurusFormView
-  },
-  {
-    path: '/pengurus/:id',
-    name: 'PengurusDetail',
-    component: PengurusDetailView
-  },
-  {
-    path: '/pengurus/:id/edit',
-    name: 'PengurusEdit',
-    component: PengurusFormView
-  },
-  {
-    path: '/kepengurusan',
-    name: 'Kepengurusan',
-    component: KepengurusanView
-  }
-];
+// const routes = [
+//   {
+//     path: "/",
+//     name: "Login",
+//     component: LoginView,
+//   },
+//   {
+//     path: "/dashboard",
+//     name: "Dashboard",
+//     component: DashboardView,
+//   },
+//   {
+//     path: "/members",
+//     name: "MemberList",
+//     component: MemberListView,
+//   },
+//   {
+//     path: "/members/add",
+//     name: "MemberAdd",
+//     component: MemberFormView,
+//   },
+//   {
+//     path: "/members/:id",
+//     name: "MemberDetail",
+//     component: MemberDetailView,
+//   },
+//   {
+//     path: "/members/:id/edit",
+//     name: "MemberEdit",
+//     component: MemberFormView,
+//   },
+//   {
+//     path: "/pengurus",
+//     name: "PengurusList",
+//     component: PengurusListView,
+//   },
+//   {
+//     path: "/pengurus/add",
+//     name: "PengurusAdd",
+//     component: PengurusFormView,
+//   },
+//   {
+//     path: "/pengurus/:id",
+//     name: "PengurusDetail",
+//     component: PengurusDetailView,
+//   },
+//   {
+//     path: "/pengurus/:id/edit",
+//     name: "PengurusEdit",
+//     component: PengurusFormView,
+//   },
+//   {
+//     path: "/kepengurusan",
+//     name: "Kepengurusan",
+//     component: KepengurusanView,
+//   },
+// ];
 
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
-  routes
+  routes,
+  scrollBehavior() {
+    return { top: 0 };
+  },
+});
+
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = isLoggedIn();
+
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    next({ path: "/login" });
+  } else if (to.meta.requiresGuest && isAuthenticated) {
+    next({ path: "/dashboard" });
+  }
+
+  next();
 });
 
 // Route guard: hanya izinkan akses jika user sudah login (kecuali Login)
-router.beforeEach((to, from, next) => {
-  const publicPages = ['Login'];
-  const authRequired = !publicPages.includes(to.name);
-  const token = localStorage.getItem('token');
-  if (authRequired && !token) {
-    return next({ name: 'Login' });
-  }
-  if (to.name === 'Login' && token) {
-    return next({ name: 'Dashboard' });
-  }
-  next();
-});
+// router.beforeEach((to, from, next) => {
+//   const publicPages = ['Login'];
+//   const authRequired = !publicPages.includes(to.name);
+//   const token = localStorage.getItem('token');
+//   if (authRequired && !token) {
+//     return next({ name: 'Login' });
+//   }
+//   if (to.name === 'Login' && token) {
+//     return next({ name: 'Dashboard' });
+//   }
+//   next();
+// });
 
 export default router;

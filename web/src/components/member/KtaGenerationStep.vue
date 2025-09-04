@@ -1,34 +1,251 @@
+<script setup>
+import { computed } from "vue";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+// import api from "@/services/api.service";
+// import { useAlert } from "@/composables/useAlert";
+// import BaseButton from "../common/BaseButton.vue";
+
+// const { showAlert } = useAlert();
+
+const props = defineProps({
+  form: {
+    type: Object,
+    required: true,
+  },
+  isEdit: {
+    type: Boolean,
+    default: false,
+  },
+});
+
+const emit = defineEmits(["update:form", "prev-step"]);
+
+const formatTanggalLahir = computed(() => {
+  if (!props.form.birthDate) return "";
+  const date = new Date(props.form.birthDate);
+  return date.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+});
+
+// const updateConfirmation = (event) => {
+//   emit("update:form", {
+//     ...props.form,
+//     isConfirmed: event.target.checked,
+//   });
+// };
+
+const prevStep = () => {
+  emit("prev-step");
+};
+
+// const downloadKta = () => {
+//   if (!props.form.isConfirmed) return;
+//   html2canvas(document.querySelector(".kta-card")).then((canvas) => {
+//     const imgData = canvas.toDataURL("image/png");
+//     const link = document.createElement("a");
+//     link.download = `KTA_${props.form.noKta || "anggota"}.png`;
+//     link.href = imgData;
+//     link.click();
+//   });
+// };
+
+const printKta = () => {
+  if (!props.form.isConfirmed) return;
+  html2canvas(document.querySelector(".kta-card")).then((canvas) => {
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({
+      orientation: "landscape",
+      unit: "mm",
+      format: [85, 55], // ukuran kartu ID
+    });
+    pdf.addImage(imgData, "PNG", 0, 0, 85, 55);
+    pdf.autoPrint();
+    pdf.output("dataurlnewwindow");
+  });
+};
+
+// const handleCreateMember = async () => {
+//   try {
+//     const form = props.form;
+//     // const payload = {
+//     //   nik: form.nik,
+//     //   ktaNumber: form.ktaNumber, // Pastikan nama field sesuai schema
+//     //   name: form.name,
+//     //   gender: form.jenisKelamin,
+//     //   birthPlace: form.birthPlace || null,
+//     //   birthDate: form.birthDate || null,
+//     //   address: form.alamat || null,
+//     //   phone: form.noHp || null,
+//     //   email: form.email || null,
+//     //   maritalStatus: form.statusPerkawinan || null,
+//     //   occupation: form.pekerjaan || null,
+//     //   skills: form.keahlian || null,
+//     //   interests: form.minat || null,
+//     //   ktpUrl: form.ktpUrl || null,
+//     //   ktpProcessedUrl: form.ktpProcessedUrl || null,
+//     //   photoUrl: form.fotoUrl || null,
+//     //   certificateUrl: form.sertifikatUrl || null,
+//     //   registrationType: form.tipeRegistrasi || null,
+//     //   isOfficial: form.isOfficial ?? false,
+//     //   province: form.provinceId
+//     //     ? { connect: { id: form.provinceId } }
+//     //     : undefined,
+//     //   city: form.cityId ? { connect: { id: form.cityId } } : undefined,
+//     //   district: form.districtId
+//     //     ? { connect: { id: form.districtId } }
+//     //     : undefined,
+//     //   village: form.villageId ? { connect: { id: form.villageId } } : undefined,
+//     //   registeredBy: form.registeredById
+//     //     ? { connect: { id: form.registeredById } }
+//     //     : undefined,
+//     // };
+//     const payload = {
+//       nik: form.nik,
+//       ktaNumber: form.ktaNumber,
+//       name: form.name,
+//       gender: form.gender,
+//       birthPlace: form.birthPlace || null,
+//       birthDate: form.birthDate ? new Date(form.birthDate) : null, // ✅ fix Date
+//       address: form.address || null,
+//       phone: form.phone || null,
+//       email: form.email || null,
+//       maritalStatus: form.maritalStatus || null,
+//       occupation: form.occupation || null,
+//       skills: form.skills || null,
+//       interests: form.interests || null,
+//       provinceCode: form.provinceCode || null,
+//       cityCode: form.cityCode || null,
+//       districtCode: form.districtCode || null,
+//       villageCode: form.villageCode || null,
+//       ktpUrl: form.ktpUrl || null,
+//       ktpProcessedUrl: form.ktpProcessedUrl || null,
+//       photoUrl: form.photoUrl || null,
+//       certificateUrl: form.certificateUrl || null,
+//       registrationType: form.registrationType || "admin",
+//       registeredById: form.registeredById || null,
+//       isOfficial: form.isOfficial ?? false,
+//     };
+//     const res = await api.post("/members", payload);
+//     if (res) {
+//       showAlert("Anggota berhasil ditambahkan", "success");
+//     }
+//   } catch (error) {
+//     const message = error.response?.data?.message || "Terjadi kesalahan.";
+//     showAlert(message, "error");
+//   }
+// };
+</script>
+<!-- <script>
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+
+export default {
+  name: "KtaGenerationStep",
+  props: {
+    form: {
+      type: Object,
+      required: true,
+    },
+    isEdit: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  computed: {
+    formatTanggalLahir() {
+      if (!this.form.tanggalLahir) return "";
+
+      const date = new Date(this.form.tanggalLahir);
+      return date.toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+    },
+  },
+  methods: {
+    updateConfirmation(event) {
+      this.$emit("update:form", {
+        ...this.form,
+        isConfirmed: event.target.checked,
+      });
+    },
+    prevStep() {
+      this.$emit("prev-step");
+    },
+    downloadKta() {
+      if (!this.form.isConfirmed) return;
+
+      html2canvas(document.querySelector(".kta-card")).then((canvas) => {
+        // Create image
+        const imgData = canvas.toDataURL("image/png");
+
+        // Create link and trigger download
+        const link = document.createElement("a");
+        link.download = `KTA_${this.form.noKta || "anggota"}.png`;
+        link.href = imgData;
+        link.click();
+      });
+    },
+    printKta() {
+      if (!this.form.isConfirmed) return;
+
+      html2canvas(document.querySelector(".kta-card")).then((canvas) => {
+        const imgData = canvas.toDataURL("image/png");
+
+        // Create PDF
+        const pdf = new jsPDF({
+          orientation: "landscape",
+          unit: "mm",
+          format: [85, 55], // ID card size
+        });
+
+        // Add image to PDF
+        pdf.addImage(imgData, "PNG", 0, 0, 85, 55);
+
+        // Print PDF
+        pdf.autoPrint();
+        pdf.output("dataurlnewwindow");
+      });
+    },
+  },
+};
+</script> -->
 <template>
   <div class="kta-generation-step">
     <h3>Cetak Kartu Tanda Anggota</h3>
-    
+
     <div class="kta-preview">
       <div class="kta-card">
         <div class="kta-header">
           <div class="kta-logo">
-            <img src="../../assets/logo.png" alt="Logo Partai" />
+            <img src="../../assets/prima_logo.png" alt="Logo Partai" />
           </div>
           <div class="kta-title">
             <h4>KARTU TANDA ANGGOTA</h4>
             <h5>PARTAI PRIMA INDONESIA</h5>
           </div>
         </div>
-        
+
         <div class="kta-body">
           <div class="kta-photo">
             <div class="kta-photo-placeholder">
               <span>Foto 3x4</span>
             </div>
           </div>
-          
+
           <div class="kta-data">
             <div class="kta-field">
               <span class="kta-label">No. KTA:</span>
-              <span class="kta-value">{{ form.noKta }}</span>
+              <span class="kta-value">{{ form.ktaNumber }}</span>
             </div>
             <div class="kta-field">
               <span class="kta-label">Nama:</span>
-              <span class="kta-value">{{ form.nama }}</span>
+              <span class="kta-value">{{ form.name }}</span>
             </div>
             <div class="kta-field">
               <span class="kta-label">NIK:</span>
@@ -36,22 +253,24 @@
             </div>
             <div class="kta-field">
               <span class="kta-label">TTL:</span>
-              <span class="kta-value">{{ form.tempatLahir }}, {{ formatTanggalLahir }}</span>
+              <span class="kta-value"
+                >{{ form.birthPlace }}, {{ formatTanggalLahir }}</span
+              >
             </div>
             <div class="kta-field">
               <span class="kta-label">Alamat:</span>
-              <span class="kta-value">{{ form.alamat }}</span>
+              <span class="kta-value">{{ form.address }}</span>
             </div>
           </div>
         </div>
-        
+
         <div class="kta-footer">
           <div class="kta-qr">
             <div class="kta-qr-placeholder">
               <span>QR Code</span>
             </div>
           </div>
-          
+
           <div class="kta-signature">
             <p>{{ form.penerbitKta }}</p>
             <div class="kta-sign-placeholder"></div>
@@ -60,106 +279,52 @@
         </div>
       </div>
     </div>
-    
-    <div class="form-group form-checkbox">
-      <input type="checkbox" :checked="form.isConfirmed" @change="updateConfirmation($event)" id="isConfirmed" required />
+
+    <!-- <div class="form-group form-checkbox">
+      <input
+        type="checkbox"
+        :checked="form.isConfirmed"
+        @change="updateConfirmation($event)"
+        id="isConfirmed"
+        required
+      />
       <label for="isConfirmed">Saya menyatakan data di atas benar</label>
-    </div>
-    
+    </div> -->
+
     <div class="kta-actions">
-      <button type="button" class="btn btn-blue" @click="downloadKta" :disabled="!form.isConfirmed">
+      <!-- <BaseButton>Download KTA</BaseButton> -->
+      <button
+        type="button"
+        class="btn btn-blue"
+        @click="downloadKta"
+        :disabled="!form.isConfirmed"
+      >
         <i class="fas fa-download"></i> Download KTA
       </button>
-      <button type="button" class="btn btn-green" @click="printKta" :disabled="!form.isConfirmed">
+      <button
+        type="button"
+        class="btn btn-green"
+        @click="printKta"
+        :disabled="!form.isConfirmed"
+      >
         <i class="fas fa-print"></i> Cetak KTA
       </button>
     </div>
-    
+
     <!-- Navigation -->
     <div class="step-navigation">
       <button type="button" class="btn" @click="prevStep">Kembali</button>
-      <button type="submit" class="btn btn-green" :disabled="!form.isConfirmed">{{ isEdit ? 'Simpan Perubahan' : 'Tambah Anggota' }}</button>
+      <button
+        type="button"
+        class="btn btn-green"
+        :disabled="!form.isConfirmed"
+        @click="handleCreateMember"
+      >
+        {{ isEdit ? "Simpan Perubahan" : "Tambah Anggota" }}
+      </button>
     </div>
   </div>
 </template>
-
-<script>
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
-
-export default {
-  name: 'KtaGenerationStep',
-  props: {
-    form: {
-      type: Object,
-      required: true
-    },
-    isEdit: {
-      type: Boolean,
-      default: false
-    }
-  },
-  computed: {
-    formatTanggalLahir() {
-      if (!this.form.tanggalLahir) return '';
-      
-      const date = new Date(this.form.tanggalLahir);
-      return date.toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      });
-    }
-  },
-  methods: {
-    updateConfirmation(event) {
-      this.$emit('update:form', {
-        ...this.form,
-        isConfirmed: event.target.checked
-      });
-    },
-    prevStep() {
-      this.$emit('prev-step');
-    },
-    downloadKta() {
-      if (!this.form.isConfirmed) return;
-      
-      html2canvas(document.querySelector('.kta-card')).then(canvas => {
-        // Create image
-        const imgData = canvas.toDataURL('image/png');
-        
-        // Create link and trigger download
-        const link = document.createElement('a');
-        link.download = `KTA_${this.form.noKta || 'anggota'}.png`;
-        link.href = imgData;
-        link.click();
-      });
-    },
-    printKta() {
-      if (!this.form.isConfirmed) return;
-      
-      html2canvas(document.querySelector('.kta-card')).then(canvas => {
-        const imgData = canvas.toDataURL('image/png');
-        
-        // Create PDF
-        const pdf = new jsPDF({
-          orientation: 'landscape',
-          unit: 'mm',
-          format: [85, 55] // ID card size
-        });
-        
-        // Add image to PDF
-        pdf.addImage(imgData, 'PNG', 0, 0, 85, 55);
-        
-        // Print PDF
-        pdf.autoPrint();
-        pdf.output('dataurlnewwindow');
-      });
-    }
-  }
-};
-</script>
-
 <style scoped>
 h3 {
   margin-bottom: 20px;

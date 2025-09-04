@@ -1,35 +1,49 @@
-<template>
-  <component :is="layoutComponent" />
-</template>
+<script setup>
+import { computed } from "vue";
+import { useRoute } from "vue-router";
+import { useAuth } from "./composables/useAuth";
+import AlertNotification from "@/components/common/AlertNotification.vue";
 
-<script>
-import { computed } from 'vue';
-import { useRoute } from 'vue-router';
-import MainLayout from './layouts/MainLayout.vue';
-import LoginView from './views/LoginView.vue';
-import './assets/global.css';
+// Import layouts
+// import DefaultLayout from "@/layouts/DefaultLayout.vue";
+import AuthLayout from "@/layouts/AuthLayout.vue";
+import DashboardLayout from "@/layouts/DashboardLayout.vue";
 
-export default {
-  name: 'App',
-  components: { MainLayout, LoginView },
-  setup() {
-    const route = useRoute();
-    // Tampilkan MainLayout untuk semua halaman kecuali login
-    const layoutComponent = computed(() => {
-      return route.name === 'Login' ? LoginView : MainLayout;
-    });
-    return { layoutComponent };
-  }
+import { ref, provide } from "vue";
+
+const alertRef = ref(null);
+provide("alert", alertRef);
+
+const route = useRoute();
+const { isAuthenticated } = useAuth();
+
+// Daftar layout
+const layouts = {
+  // DefaultLayout,
+  AuthLayout,
+  DashboardLayout,
 };
+
+// Layout yang dipakai saat ini
+const currentLayout = computed(() => {
+  const layoutName = route.meta.layout
+    ? route.meta.layout
+    : isAuthenticated
+    ? "DashboardLayout"
+    : "AuthLayout";
+
+  // return layouts[layoutName] || DefaultLayout;
+  return layouts[layoutName];
+});
 </script>
 
+<template>
+  <component :is="currentLayout">
+    <router-view />
+  </component>
+  <AlertNotification ref="alertRef" />
+</template>
+
 <style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
+/* @import '@/assets/styles/global.css'; */
 </style>

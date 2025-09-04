@@ -5,43 +5,61 @@
       <button class="btn btn-green" @click="addMember">Tambah Anggota</button>
     </div>
     <MemberFilter v-model:search="search" />
-    <MemberTable :members="pagedMembers" @view="viewDetail" @edit="editMember" />
+    <MemberTable
+      :members="pagedMembers"
+      @view="viewDetail"
+      @edit="editMember"
+    />
     <div class="pagination-row">
-      <button class="btn btn-sm" :disabled="page === 1" @click="page--">&laquo; Prev</button>
+      <button class="btn btn-sm" :disabled="page === 1" @click="page--">
+        &laquo; Prev
+      </button>
       <span>Halaman {{ page }} dari {{ totalPages }}</span>
-      <button class="btn btn-sm" :disabled="page === totalPages" @click="page++">Next &raquo;</button>
+      <button
+        class="btn btn-sm"
+        :disabled="page === totalPages"
+        @click="page++"
+      >
+        Next &raquo;
+      </button>
     </div>
   </div>
 </template>
 
 <script>
-import api from '../services/api';
-import MemberFilter from '../components/MemberFilter.vue';
-import MemberTable from '../components/MemberTable.vue';
+// import api from '../services/api';
+import api from "@/services/api.service";
+import MemberFilter from "../components/MemberFilter.vue";
+import MemberTable from "../components/MemberTable.vue";
 
 export default {
-  name: 'MemberListView',
+  name: "MemberListView",
   components: { MemberFilter, MemberTable },
   data() {
     return {
       members: [],
-      search: '',
+      search: "",
       page: 1,
-      pageSize: 10
+      pageSize: 10,
     };
   },
   computed: {
     filteredMembers() {
       if (!this.search) return this.members;
-      return this.members.filter(m => m.name.toLowerCase().includes(this.search.toLowerCase()));
+      return this.members.filter((m) =>
+        m.name.toLowerCase().includes(this.search.toLowerCase())
+      );
     },
     totalPages() {
-      return Math.max(1, Math.ceil(this.filteredMembers.length / this.pageSize));
+      return Math.max(
+        1,
+        Math.ceil(this.filteredMembers.length / this.pageSize)
+      );
     },
     pagedMembers() {
       const start = (this.page - 1) * this.pageSize;
       return this.filteredMembers.slice(start, start + this.pageSize);
-    }
+    },
   },
   mounted() {
     this.fetchMembers();
@@ -49,22 +67,22 @@ export default {
   methods: {
     async fetchMembers() {
       try {
-        const res = await api.get('/members');
+        const res = await api.get("/members");
         this.members = res.data;
       } catch (err) {
         this.members = [];
       }
     },
     viewDetail(member) {
-      this.$router.push({ name: 'MemberDetail', params: { id: member.id } });
+      this.$router.push({ name: "MemberDetail", params: { id: member.id } });
     },
     editMember(member) {
-      this.$router.push({ name: 'MemberEdit', params: { id: member.id } });
+      this.$router.push({ name: "MemberEdit", params: { id: member.id } });
     },
     addMember() {
-      this.$router.push({ name: 'MemberAdd' });
-    }
-  }
+      this.$router.push({ name: "MemberAdd" });
+    },
+  },
 };
 </script>
 

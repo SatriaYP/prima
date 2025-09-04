@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -42,14 +42,14 @@ model Member {
   occupation        String?
   skills            String?
   interests         String?
-  provinceId        String?
-  province          Region?   @relation("MemberProvince", fields: [provinceId], references: [id])
-  cityId            String?
-  city              Region?   @relation("MemberCity", fields: [cityId], references: [id])
-  districtId        String?
-  district          Region?   @relation("MemberDistrict", fields: [districtId], references: [id])
-  villageId         String?
-  village           Region?   @relation("MemberVillage", fields: [villageId], references: [id])
+  provinceCode        String?
+  province          Region?   @relation("MemberProvince", fields: [provinceCode], references: [code])
+  cityCode            String?
+  city              Region?   @relation("MemberCity", fields: [cityCode], references: [code])
+  districtCode        String?
+  district          Region?   @relation("MemberDistrict", fields: [districtCode], references: [code])
+  villageCode         String?
+  village           Region?   @relation("MemberVillage", fields: [villageCode], references: [code])
   ktpUrl            String?   // URL to KTP image
   ktpProcessedUrl   String?   // URL to processed KTP image
   photoUrl          String?   // URL to member photo
@@ -85,7 +85,7 @@ model Region {
   name        String
   level       String    // "province", "city", "district", "village"
   parentId    String?
-  parent      Region?   @relation("RegionHierarchy", fields: [parentId], references: [id])
+  parent      Region?   @relation("RegionHierarchy", fields: [parentId], references: [code])
   children    Region[]  @relation("RegionHierarchy")
   users       User[]
   officials   Official[]
