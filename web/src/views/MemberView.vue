@@ -5,106 +5,53 @@ import BaseTable from "@/components/common/BaseTable.vue";
 import BaseTableFilter from "@/components/common/BaseTableFilter.vue";
 import BaseButton from "@/components/common/BaseButton.vue";
 import MemberService from "@/services/member.service";
-// import RegionService from "@/services/region.service";
-// import MemberCard from "@/components/member/MemberCard.vue";
-
+import { useAlert } from "@/composables/useAlert";
+const { showAlert } = useAlert();
 const router = useRouter();
+
+// Data state
 const members = ref([]);
 const loading = ref(false);
-// const members = ref([
-//   {
-//     id: 1,
-//     name: "Budi Santoso",
-//     gender: "Laki-laki",
-//     provinsi: "Jawa Tengah",
-//     kota: "Semarang",
-//     kecamatan: "Candisari",
-//     desa: "Tembalang",
-//   },
-//   {
-//     id: 2,
-//     name: "Budi Santoso",
-//     gender: "Laki-laki",
-//     provinsi: "Jawa Tengah",
-//     kota: "Semarang",
-//     kecamatan: "Candisari",
-//     desa: "Tembalang",
-//   },
-//   {
-//     id: 2,
-//     name: "Budi Santoso",
-//     gender: "Laki-laki",
-//     provinsi: "Jawa Tengah",
-//     kota: "Semarang",
-//     kecamatan: "Candisari",
-//     desa: "Tembalang",
-//   },
-//   {
-//     id: 2,
-//     name: "Budi Santoso",
-//     gender: "Laki-laki",
-//     provinsi: "Jawa Tengah",
-//     kota: "Semarang",
-//     kecamatan: "Candisari",
-//     desa: "Tembalang",
-//   },
-//   {
-//     id: 2,
-//     name: "Budi Santoso",
-//     gender: "Laki-laki",
-//     provinsi: "Jawa Tengah",
-//     kota: "Semarang",
-//     kecamatan: "Candisari",
-//     desa: "Tembalang",
-//   },
-//   {
-//     id: 2,
-//     name: "Budi Santoso",
-//     gender: "Laki-laki",
-//     provinsi: "Jawa Tengah",
-//     kota: "Semarang",
-//     kecamatan: "Candisari",
-//     desa: "Tembalang",
-//   },
-// ]);
+const selectedItems = ref([]); // 👈 Untuk multi-select
+const currentPage = ref(1);
+const totalPages = ref(1);
+const itemsPerPage = ref(100);
 
-const columns = [
-  { key: "name", label: "Nama" },
-  { key: "gender", label: "Gender" },
-  { key: "province.name", label: "Provinsi" },
-  { key: "city.name", label: "Kota/Kabupaten" },
-  { key: "district.name", label: "Kecamatan" },
-];
-// const columns = [
-//   { key: "name", label: "Nama" },
-//   { key: "gender", label: "Gender" },
-//   { key: "provinsi", label: "Provinsi" },
-//   { key: "kota", label: "Kota/Kabupaten" },
-//   { key: "kecamatan", label: "Kecamatan" },
-// ];
-
+// Filter
 const search = ref("");
 const provinsi = ref("");
 const kota = ref("");
 const kecamatan = ref("");
 const desa = ref("");
 
-// const filteredMembers = computed(() => {
-//   return members.value.filter((m) =>
-//     m.name.toLowerCase().includes(search.value.toLowerCase())
-//   );
-// });
+// Kolom tabel
+const columns = [
+  { key: "hasilVerminAwal", label: "Hasil Vermin Awal", width: "100px", type: "text", default: " " },
+  { key: "hasilVerminPerbaikan", label: "Hasil Vermin Perbaikan", width: "100px", type: "text", default: " " },
+  { key: "hasilFaktual", label: "Hasil Faktual", width: "100px" },
+  { key: "ktaNumber", label: "No. KTA", width: "100px" },
+  { key: "name", label: "Nama", width: "150px" },
+  { key: "nik", label: "NIK", width: "140px" },
+  { key: "gender", label: "Gender", width: "100px" },
+  { key: "province.name", label: "Provinsi", width: "120px" },
+  { key: "city.name", label: "Kota/Kabupaten", width: "120px" },
+  { key: "district.name", label: "Kecamatan", width: "120px" },
+  { key: "pengurus", label: "Pengurus", width: "100px", type: "text", default: " " },
+];
 
+// Filtered data dengan pagination
 const filteredMembers = computed(() => {
   return members.value.filter((m) => {
     const matchSearch =
       !search.value ||
-      m.name.toLowerCase().includes(search.value.toLowerCase());
-    const matchProvinsi = !provinsi.value || m.provinsiCode === provinsi.value;
-    const matchKota = !kota.value || m.kotaCode === kota.value;
+      m.name.toLowerCase().includes(search.value.toLowerCase()) ||
+      m.nik.includes(search.value);
+    m.ktaNumber.includes(search.value);
+    const matchProvinsi = !provinsi.value || m.provinceCode === provinsi.value;
+    const matchKota = !kota.value || m.cityCode === kota.value;
     const matchKecamatan =
-      !kecamatan.value || m.kecamatanCode === kecamatan.value;
-    const matchDesa = !desa.value || m.desaCode === desa.value;
+      !kecamatan.value || m.districtCode === kecamatan.value;
+    const matchDesa = !desa.value || m.villageCode === desa.value;
 
     return (
       matchSearch && matchProvinsi && matchKota && matchKecamatan && matchDesa
@@ -112,42 +59,139 @@ const filteredMembers = computed(() => {
   });
 });
 
+const paginatedMembers = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
+  return filteredMembers.value.slice(start, end);
+});
+
+const totalPagesComputed = computed(() => {
+  return Math.ceil(filteredMembers.value.length / itemsPerPage.value);
+});
+
+// Fetch Members
+const fetchMembers = async () => {
+  loading.value = true;
+  try {
+    const data = await MemberService.getMembers({
+      page: currentPage.value,
+      limit: itemsPerPage.value,
+      search: search.value,
+      provinceCode: provinsi.value,
+      cityCode: kota.value,
+      districtCode: kecamatan.value,
+    });
+    members.value = data.data;
+    totalPages.value = data.totalPages || 1; // Sesuaikan dengan response backend
+  } catch (err) {
+    console.error("Gagal ambil data member:", err);
+    members.value = [];
+  } finally {
+    loading.value = false;
+  }
+};
+const onItemsPerPageChange = () => {
+  currentPage.value = 1; // reset ke halaman 1
+  fetchMembers();
+};
+
+// Event Handlers
 const handleAddMember = () => {
   router.push({ name: "AddMember" });
 };
 
-const fetchMembers = async () => {
+const handleEdit = (member) => {
+  router.push({ name: "EditMember", params: { id: member.id } });
+};
+
+const handleDelete = async (member) => {
+  console.log("🚀 [DELETE] Member data:", member); // 👈 TAMBAHKAN INI!
+  if (confirm(`Hapus ${member.name}?`)) {
+    loading.value = true;
+    try {
+      const response = await MemberService.deleteMember(member.id);
+      console.log("✅ [DELETE SUCCESS]", response);
+      showAlert("Anggota berhasil dihapus.", "success");
+      members.value = members.value.filter((m) => m.id !== member.id);
+      if (members.value.length === 0 && currentPage.value > 1) {
+        currentPage.value = 1;
+        fetchMembers();
+      }
+    } catch (err) {
+      console.error("❌ [DELETE FAILED]:", err);
+      showAlert("Gagal menghapus anggota. Coba lagi.", "error");
+    } finally {
+      loading.value = false;
+    }
+  }
+};
+
+const showingInfo = computed(() => {
+  const total = filteredMembers.value.length;
+  if (total === 0) return "Tidak ada data";
+
+  const start = (currentPage.value - 1) * itemsPerPage.value + 1;
+  const end = Math.min(start + itemsPerPage.value - 1, total);
+
+  return `Menampilkan ${start}–${end} dari ${total} anggota`;
+});
+
+const handleSelectionChange = (selected) => {
+  selectedItems.value = selected;
+};
+
+const handleBulkDelete = async () => {
+  if (selectedItems.value.length === 0) {
+    alert("Tidak ada anggota yang dipilih.");
+    return;
+  }
+
+  const names = selectedItems.value.map((m) => m.name).join(", ");
+  const confirmText = `Hapus ${selectedItems.value.length} anggota:\n${names}\n\nIni akan dihapus dari database secara permanen.`;
+
+  if (!confirm(confirmText)) return;
+
   loading.value = true;
+
   try {
-    const data = await MemberService.getMembers({ page: 1, limit: 10 });
-    console.log(data);
-    members.value = data.data;
+    // Hapus satu per satu (karena biasanya API tidak support bulk delete)
+    const promises = selectedItems.value.map((member) =>
+      MemberService.deleteMember(member.id)
+    );
+
+    await Promise.all(promises);
+
+    // Berhasil → hapus dari state
+    members.value = members.value.filter(
+      (m) => !selectedItems.value.some((sel) => sel.id === m.id)
+    );
+
+    // Reset seleksi
+    selectedItems.value = [];
+
+    showAlert("Berhasil menghapus anggota.", "success");
   } catch (err) {
-    console.error("Gagal ambil data member:", err);
+    console.error("Gagal menghapus anggota:", err);
+    showAlert("Gagal menghapus anggota. Coba lagi.", "error");
   } finally {
     loading.value = false;
   }
 };
 
-function resetFilter() {
+const resetFilter = () => {
   search.value = "";
   provinsi.value = "";
   kota.value = "";
   kecamatan.value = "";
   desa.value = "";
-}
+  currentPage.value = 1; // Reset ke halaman 1 saat filter direset
+  fetchMembers();
+};
 
-function handleDetail(member) {
-  alert(`Detail ${member.name}`);
-}
-function handleEdit(member) {
-  alert(`Edit ${member.name}`);
-}
-function handleDelete(member) {
-  if (confirm(`Hapus ${member.name}?`)) {
-    members.value = members.value.filter((m) => m.id !== member.id);
-  }
-}
+const onPageChange = (page) => {
+  currentPage.value = page;
+  fetchMembers(); // Load data baru berdasarkan halaman
+};
 
 onMounted(() => {
   fetchMembers();
@@ -157,68 +201,71 @@ onMounted(() => {
 <template>
   <div class="container">
     <div class="header">
-      <h2></h2>
-      <!-- <button class="add-button">+ Tambah Anggota</button> -->
-      <BaseButton icon-start="fa fa-plus" @click="handleAddMember"
-        ><p class="add-button">Tambah Anggota</p></BaseButton
-      >
+      <h2>Daftar Anggota</h2>
+      <BaseButton icon-start="fa fa-plus" @click="handleAddMember">
+        Tambah Anggota
+      </BaseButton>
     </div>
-
-    <!-- <div class="filters">
-      <input type="text" v-model="search" placeholder="Cari anggota..." />
-      <select v-model="provinsi">
-        <option>Provinsi</option>
- 
-      </select>
-      <select v-model="kota">
-        <option>Kota/Kabupaten</option>
-        
-      </select>
-      <select v-model="kecamatan">
-        <option>Kecamatan</option>
-       
-      </select>
-      <select v-model="desa">
-        <option>Desa/Kelurahan</option>
-        
-      </select>
-      <button @click="resetFilter" class="reset-button">Reset</button>
-    </div> -->
-
-    <BaseTableFilter
-      v-model:search="search"
-      v-model:provinsi="provinsi"
-      v-model:kota="kota"
-      v-model:kecamatan="kecamatan"
-      v-model:desa="desa"
-      @reset="resetFilter"
-    />
-
-    <BaseTable
-      :columns="columns"
-      :items="filteredMembers"
-      :rows-per-page="8"
-      :loading="isLoading"
-      :on-detail="false"
-      :on-edit="true"
-      :on-delete="true"
-      @detail="handleDetail"
-      @edit="handleEdit"
-      @delete="handleDelete"
-    />
-
-    <!-- <MemberCard
-      v-for="member in filteredMembers"
-      :key="member.id"
-      :member="member"
-      @detail="handleDetail"
-      @edit="handleEdit"
-      @delete="handleDelete"
-    /> -->
+    <!-- Filter -->
+    <BaseTableFilter v-model:search="search" v-model:provinsi="provinsi" v-model:kota="kota"
+      v-model:kecamatan="kecamatan" v-model:desa="desa" @reset="resetFilter" />
+    <!-- Info jumlah item & dropdown per page -->
+    <div class="table-footer">
+      <div class="table-info">
+        {{ showingInfo }}
+      </div>
+      <div class="per-page">
+        <label for="perPage">Tampilkan: </label>
+        <select id="perPage" v-model.number="itemsPerPage" @change="onItemsPerPageChange">
+          <option :value="10">10</option>
+          <option :value="25">25</option>
+          <option :value="50">50</option>
+          <option :value="100">100</option>
+        </select>
+        <span>per halaman</span>
+      </div>
+    </div>
+    <!-- Table dengan Multi-Select & Pagination -->
+    <BaseTable :columns="columns" :items="paginatedMembers" :rows-per-page="itemsPerPage" :loading="loading"
+      :selectable="true" :selected-items="selectedItems" :current-page="currentPage" :total-pages="totalPagesComputed"
+      @selection-change="handleSelectionChange" @edit="handleEdit" @delete="handleDelete" @page-change="onPageChange" />
+    <!-- Tombol Hapus Massal -->
+    <div class="bulk-actions">
+      <button type="button" class="btn-delete" :disabled="selectedItems.length === 0" @click="handleBulkDelete">
+        🗑️ Hapus Terpilih ({{ selectedItems.length }})
+      </button>
+    </div>
   </div>
 </template>
-
 <style scoped>
+.table-footer {
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.per-page {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.per-page select {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+.table-info {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #555;
+  font-style: italic;
+}
+
 .container {
   /* max-width: 800px; */
   margin: 0 auto;
@@ -276,6 +323,40 @@ onMounted(() => {
   border-radius: 12px;
   font-size: 13px;
   cursor: pointer;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  background: #f9f9ff;
+  border-radius: 16px;
+  min-height: calc(100vh - 120px);
+}
+
+
+.bulk-actions {
+  margin-top: 20px;
+  text-align: right;
+}
+
+.btn-delete {
+  padding: 10px 16px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-delete:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
 }
 </style>
 

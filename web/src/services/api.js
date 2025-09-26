@@ -3,7 +3,7 @@ import axios from 'axios';
 // Environment-based API configuration
 const getApiBaseUrl = () => {
   const hostname = window.location.hostname;
-  
+
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return 'http://localhost:4000/api';
   } else if (hostname.includes('staging')) {

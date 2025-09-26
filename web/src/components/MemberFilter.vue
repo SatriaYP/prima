@@ -1,10 +1,18 @@
 <template>
   <div class="member-filter card">
     <input v-model="search" @input="$emit('update:search', search)" placeholder="Cari anggota..." />
-    <select v-model="province" @change="$emit('update:province', province)"><option value="">Provinsi</option></select>
-    <select v-model="city" @change="$emit('update:city', city)"><option value="">Kota/Kabupaten</option></select>
-    <select v-model="district" @change="$emit('update:district', district)"><option value="">Kecamatan</option></select>
-    <select v-model="village" @change="$emit('update:village', village)"><option value="">Desa/Kelurahan</option></select>
+    <select v-model="province" @change="$emit('update:province', province)">
+      <option value="">Prosvinsi</option>
+    </select>
+    <select v-model="city" @change="$emit('update:city', city)">
+      <option value="">Kota/Kabupaten</option>
+    </select>
+    <select v-model="district" @change="$emit('update:district', district)">
+      <option value="">Kecamatan</option>
+    </select>
+    <select v-model="village" @change="$emit('update:village', village)">
+      <option value="">Desa/Kelurahan</option>
+    </select>
     <button class="btn" @click="$emit('reset')">Reset</button>
   </div>
 </template>
@@ -31,6 +39,7 @@ export default {
   align-items: center;
   margin-bottom: 18px;
 }
+
 .member-filter input,
 .member-filter select {
   min-width: 120px;

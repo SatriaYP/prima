@@ -1,9 +1,66 @@
-<script setup>
-import { ref, watch, computed, toRefs } from "vue";
-import api from "@/services/api.service";
-import AppFileUpload from "./AppFileUpload.vue";
-// import BaseButton from "../common/BaseButton.vue";
+<template>
+  <div class="ktp-upload-step">
+    <div class="form-group ktp-upload-block">
+      <AppFileUpload title="Upload KTP" @upload:files="handleFileUpload" />
 
+      <!-- Preview KTP -->
+      <div class="ktp-upload-preview-container">
+        <div class="ktp-images-comparison">
+          <!-- Slot Original -->
+          <div class="ktp-image-container">
+            <h4>Foto KTP</h4>
+            <template v-if="form.ktpUrl">
+              <img :src="form.ktpUrl" alt="Foto KTP" class="ktp-preview" :class="{ zoomed: zoomKtp }"
+                @click="toggleZoom" />
+            </template>
+            <template v-else>
+              <div class="ktp-placeholder">Belum ada foto</div>
+            </template>
+          </div>
+        </div>
+
+        <button v-if="form.ktpUrl && !ocrLoading" type="button" class="btn btn-blue" @click="prosesKtpOcr">
+          Proses dan Isi Otomatis
+        </button>
+        <!-- OCR Result Debug -->
+        <div v-if="ocrResult" class="ocr-result-debug">
+          <details>
+            <summary>Hasil Ekstraksi OCR (debug)</summary>
+            <pre>{{ ocrResult }}</pre>
+          </details>
+        </div>
+
+        <div v-if="ocrLoading" class="ocr-loading">
+          <div class="loading-spinner"></div>
+          <div>Memproses KTP... Mohon tunggu (maksimal 2 menit)</div>
+          <div class="loading-tip">
+            Tips: Pastikan gambar KTP jelas dan tidak blur
+          </div>
+        </div>
+        <div v-if="ocrError" class="ocr-error">
+          <span class="ocr-error-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+              <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0-18 0m9-3v4m0 3v.01" />
+            </svg>
+          </span>{{ ocrError }}
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref } from "vue";
+// import api from "@/services/api.service";
+// import MemberService from "@/services/member.service";
+import AppFileUpload from "./AppFileUpload.vue";
+import api from "@/services/api.service";
+const zoomKtp = ref(false);
+
+function toggleZoom() {
+  zoomKtp.value = !zoomKtp.value;
+}
 const props = defineProps({
   form: {
     type: Object,
@@ -26,501 +83,428 @@ const emit = defineEmits([
   "fetch-kecamatan",
 ]);
 
-// const { form, provinsiList, kabupatenList } = toRefs(props);
-const { form } = toRefs(props);
-// const ktpInput = ref(null);
 
 const ocrLoading = ref(false);
 const ocrError = ref("");
 const ocrResult = ref(null);
-const regionOptions = ref(props.provinsiList);
-console.log(regionOptions.value, "qwqwqw");
-
-// Computed Date Formatted
-const dateFormatted = computed({
-  get() {
-    if (!form.value.birthDate) return "";
-    const [day, month, year] = form.value.birthDate.split("-");
-    // const [year, month, day] = form.value.birthDate.split("-");
-    // return `${day}/${month}/${year}`;
-    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-  },
-  set(val) {
-    const parts = val.split("/");
-    if (parts.length === 3) {
-      const [d, m, y] = parts;
-      if (y && m && d) {
-        emit("update:form", {
-          ...form.value,
-          birthDate: `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`,
-        });
-      }
-    }
-  },
-});
-
-// const handleOcr = (ocrData) => {
-//   if (ocrData) {
-//     Object.assign(member, ocrData);
-//   } else {
-//     Object.keys(member).forEach((key) => (member[key] = ""));
+// eslint-disable-next-line
+const initialForm = {
+  nik: null,
+  ktaNumber: null,
+  name: null,
+  gender: null,
+  birthPlace: null,
+  birthDate: null,
+  address: null,
+  phone: null,
+  email: null,
+  maritalStatus: null,
+  occupation: "LAINNYA",
+  skills: "",
+  interests: "",
+  provinceCode: null,
+  cityCode: null,
+  districtCode: null,
+  villageCode: null,
+  ktpUrl: null,
+  ktpProcessedUrl: null,
+  photoUrl: null,
+  certificateUrl: null,
+  registrationType: "admin",
+  registeredById: null,
+  isOfficial: false,
+  isConfirmed: false,
+};
+// Fungsi Upload File
+// const handleFileUpload = (file) => {
+//   if (!file) {
+//     emit("update:form", { ...initialForm }); // ✅ AMAN — TIDAK MUTASI PROP!
+//     return;
 //   }
-//   // console.log(`Data member: ${ocrData}`);
+//   // eslint-disable-next-line
+//   emit("update:form", {
+//     ...props.form,
+//     // eslint-disable-next-line
+//     ktpUrl: URL.createObjectURL(file),
+//     ktpProcessedUrl: "", // reset processed URL saat upload baru
+//   });
 // };
-
-watch(
-  () => form.value.birthDate,
-  (val) => {
-    if (val && val.length >= 3) {
-      fetchRegionOptions(val);
-    }
-  }
-);
-
-// Utility
-// function toTitleCase(str) {
-//   return str
-//     .toLowerCase()
-//     .split(" ")
-//     .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-//     .join(" ");
-// }
-
-async function fetchRegionOptions(query) {
-  try {
-    const res = await api.get(
-      `/regions/search?query=${encodeURIComponent(query)}`
-    );
-    regionOptions.value = res.data;
-  } catch (e) {
-    console.error("Error fetching region options:", e);
-    regionOptions.value = [];
-  }
-}
-
-function nextStep() {
-  emit("next-step");
-}
-
-const handleFileUpload = (file) => {
-  const fileData = file;
-  // if (!fileData) return;
-  if (!fileData) {
-    Object.keys(form.value).forEach((key) => {
-      form.value[key] = null;
-    });
+const handleFileUpload = async (file) => {
+  if (!file) {
     emit("update:form", {
-      ...form.value,
+      ...props.form,
+      ktpUrl: null,
+      ktpProcessedUrl: "",
     });
+    return;
   }
+
+  const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
+  if (!allowedTypes.includes(file.type)) {
+    alert("Format file hanya boleh JPG atau PNG.");
+    return;
+  }
+
+  const ktpUrl = URL.createObjectURL(file);
+  let processedUrl = "";
+
+  try {
+    processedUrl = await autoCropKtp(file);
+  } catch (err) {
+    console.error("Crop gagal:", err);
+  }
+
   emit("update:form", {
-    ...form.value,
-    ktpUrl: fileData ? URL.createObjectURL(fileData) : null,
-    ktpProcessedUrl: "",
+    ...props.form,
+    ktpUrl,
+    ktpProcessedUrl: processedUrl || "",
   });
 };
+// Proses OCR (tetap seperti semula)
+// async function prosesKtpOcr() {
+//   if (!props.form.ktpUrl) return;
 
-// function handleFileUpload(e) {
-//   const file = e.target.files[0];
-//   if (file) {
-//     emit("update:form", {
-//       ...form.value,
-//       fotoKtp: file,
-//       fotoKtpUrl: URL.createObjectURL(file),
-//       fotoKtpProcessedUrl: "",
-//     });
-//     // emit("update:form", {
-//     //   ...form.value,
-//     //   fotoKtp: file,
-//     //   fotoKtpUrl: URL.createObjectURL(file),
-//     //   fotoKtpProcessedUrl: "",
+//   ocrLoading.value = true;
+//   ocrError.value = "";
+//   ocrResult.value = null;
+
+//   try {
+//     // Ambil file dari URL (convert dari blob ke File)
+//     const response = await fetch(props.form.ktpUrl);
+//     const blob = await response.blob();
+//     const file = new File([blob], "ktp.jpg", { type: "image/jpeg" });
+
+//     const formData = new FormData();
+//     formData.append("image", file);
+
+//     // 👇 INI YANG PENTING — ENDPOINT BARU DI MODUL MEMBER
+//     // const res = await api.post("/members/crop-ktp", formData, {
+//     //   headers: {
+//     //     "Content-Type": "multipart/form-data",
+//     //   },
 //     // });
-//     // ocrResult.value = null;
-//     // ocrError.value = "";
+//     const res = await api.post("/members/crop-ktp", formData);
+//     if (res.data.success && res.data.processed_image_url) {
+//       emit("update:form", {
+//         ...props.form,
+//         ktpProcessedUrl: res.data.processed_image_url, // 👈 UPDATE FORM DENGAN GAMBAR CROP
+//       });
+
+//       ocrResult.value = JSON.stringify(res.data, null, 2);
+//     } else {
+//       throw new Error("Respon tidak valid");
+//     }
+//   } catch (err) {
+//     console.error("Error cropping KTP:", err);
+//     if (err.response?.status === 400) {
+//       ocrError.value = "Gambar tidak jelas. Pastikan KTP terlihat utuh.";
+//     } else if (err.response?.status === 500) {
+//       ocrError.value = "Gagal memproses KTP. Silakan coba lagi.";
+//     } else {
+//       ocrError.value =
+//         err.response?.data?.message ||
+//         "Gagal memproses KTP. Pastikan gambar jelas dan tidak blur.";
+//     }
+//   } finally {
+//     ocrLoading.value = false;
 //   }
 // }
-
-// function resetKtpUpload() {
-//   emit("update:form", {
-//     ...form.value,
-//     fotoKtp: null,
-//     fotoKtpUrl: "",
-//     fotoKtpProcessedUrl: "",
-//   });
-//   ocrResult.value = null;
-//   ocrError.value = "";
-//   if (ktpInput.value) ktpInput.value.value = "";
-// }
-
-function downloadProcessedImage() {
-  if (!form.value.fotoKtpProcessedUrl) return;
-  const a = document.createElement("a");
-  a.href = form.value.fotoKtpProcessedUrl;
-  a.download = "ktp_processed_" + new Date().getTime() + ".jpg";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+async function ensureOpenCv() {
+  return new Promise((resolve, reject) => {
+    if (window.cv && window.cv.Mat) return resolve(window.cv);
+    let tries = 0;
+    const t = setInterval(() => {
+      tries++;
+      if (window.cv && window.cv.Mat) {
+        clearInterval(t);
+        resolve(window.cv);
+      }
+      if (tries > 40) {
+        clearInterval(t);
+        reject(new Error("OpenCV.js gagal load"));
+      }
+    }, 100);
+  });
 }
 
-function onImageLoad() {
-  console.log("Image loaded successfully:", form.value.fotoKtpProcessedUrl);
-}
+async function autoCropKtp(file) {
+  const cv = await ensureOpenCv();
 
-function onImageError(event) {
-  console.error("Image failed to load:", form.value.fotoKtpProcessedUrl);
-  console.error("Error event:", event);
-  ocrError.value = "Gagal memuat gambar hasil proses. Silakan coba lagi.";
-}
+  // Convert File → Image
+  const imgUrl = URL.createObjectURL(file);
+  const img = await new Promise((res) => {
+    const i = new Image();
+    i.onload = () => res(i);
+    i.src = imgUrl;
+  });
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = img.width;
+  tempCanvas.height = img.height;
+  const ctx = tempCanvas.getContext("2d");
+  ctx.drawImage(img, 0, 0);
 
+  // OpenCV Mat
+  let src = cv.imread(tempCanvas);
+  const orig = src.clone();
+
+  // Resize untuk performance
+  const maxDim = 800;
+  let scale = 1;
+  if (src.cols > maxDim || src.rows > maxDim) {
+    scale = Math.max(src.cols / maxDim, src.rows / maxDim);
+    const dsize = new cv.Size(
+      Math.round(src.cols / scale),
+      Math.round(src.rows / scale)
+    );
+    cv.resize(src, src, dsize, 0, 0, cv.INTER_AREA);
+  }
+
+  // Preprocessing
+  let gray = new cv.Mat();
+  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+  cv.GaussianBlur(gray, gray, new cv.Size(5, 5), 0);
+
+  let edged = new cv.Mat();
+  cv.Canny(gray, edged, 50, 150);
+  let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
+  cv.dilate(edged, edged, kernel);
+
+  // Cari kontur terbesar (4 sisi)
+  let contours = new cv.MatVector();
+  let hierarchy = new cv.Mat();
+  cv.findContours(
+    edged,
+    contours,
+    hierarchy,
+    cv.RETR_LIST,
+    cv.CHAIN_APPROX_SIMPLE
+  );
+
+  let biggestQuad = null;
+  let maxArea = 0;
+  for (let i = 0; i < contours.size(); i++) {
+    const cnt = contours.get(i);
+    const peri = cv.arcLength(cnt, true);
+    const approx = new cv.Mat();
+    cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
+    if (approx.rows === 4) {
+      const area = cv.contourArea(approx);
+      if (area > maxArea) {
+        maxArea = area;
+        biggestQuad = approx.clone();
+      }
+    }
+    approx.delete();
+    cnt.delete();
+  }
+
+  let resultDataUrl = null;
+  if (biggestQuad) {
+    // Ambil titik
+    const pts = [];
+    for (let i = 0; i < 4; i++) {
+      pts.push({
+        x: biggestQuad.intPtr(i, 0)[0] * scale,
+        y: biggestQuad.intPtr(i, 0)[1] * scale,
+      });
+    }
+
+    // Urutkan titik (tl, tr, br, bl)
+    // eslint-disable-next-line
+    function orderPoints(pts) {
+      const rect = [null, null, null, null];
+      const sum = pts.map((p) => p.x + p.y);
+      const diff = pts.map((p) => p.x - p.y);
+      rect[0] = pts[sum.indexOf(Math.min(...sum))]; // tl
+      rect[2] = pts[sum.indexOf(Math.max(...sum))]; // br
+      rect[1] = pts[diff.indexOf(Math.min(...diff))]; // tr
+      rect[3] = pts[diff.indexOf(Math.max(...diff))]; // bl
+      return rect;
+    }
+    const ordered = orderPoints(pts);
+
+    // Hitung ukuran output
+    const widthA = Math.hypot(
+      ordered[2].x - ordered[3].x,
+      ordered[2].y - ordered[3].y
+    );
+    const widthB = Math.hypot(
+      ordered[1].x - ordered[0].x,
+      ordered[1].y - ordered[0].y
+    );
+    const maxWidth = Math.max(Math.round(widthA), Math.round(widthB));
+
+    const heightA = Math.hypot(
+      ordered[1].x - ordered[2].x,
+      ordered[1].y - ordered[2].y
+    );
+    const heightB = Math.hypot(
+      ordered[0].x - ordered[3].x,
+      ordered[0].y - ordered[3].y
+    );
+    const maxHeight = Math.max(Math.round(heightA), Math.round(heightB));
+
+    // Transformasi perspektif
+    const srcMat = cv.matFromArray(4, 1, cv.CV_32FC2, [
+      ordered[0].x,
+      ordered[0].y,
+      ordered[1].x,
+      ordered[1].y,
+      ordered[2].x,
+      ordered[2].y,
+      ordered[3].x,
+      ordered[3].y,
+    ]);
+    const dstMat = cv.matFromArray(4, 1, cv.CV_32FC2, [
+      0,
+      0,
+      maxWidth - 1,
+      0,
+      maxWidth - 1,
+      maxHeight - 1,
+      0,
+      maxHeight - 1,
+    ]);
+
+    const M = cv.getPerspectiveTransform(srcMat, dstMat);
+    const fullOrig = cv.imread(img);
+    const dst = new cv.Mat();
+    const dsize = new cv.Size(maxWidth, maxHeight);
+    cv.warpPerspective(
+      fullOrig,
+      dst,
+      M,
+      dsize,
+      cv.INTER_LINEAR,
+      cv.BORDER_CONSTANT,
+      new cv.Scalar()
+    );
+
+    // Convert ke DataURL
+    const canvas = document.createElement("canvas");
+    canvas.width = dst.cols;
+    canvas.height = dst.rows;
+    cv.imshow(canvas, dst);
+    resultDataUrl = canvas.toDataURL("image/jpeg");
+
+    // Cleanup
+    srcMat.delete();
+    dstMat.delete();
+    M.delete();
+    fullOrig.delete();
+    dst.delete();
+  }
+
+  // Bersihkan memory
+  src.delete();
+  orig.delete();
+  gray.delete();
+  edged.delete();
+  kernel.delete();
+  contours.delete();
+  hierarchy.delete();
+  if (biggestQuad) biggestQuad.delete();
+
+  return resultDataUrl;
+}
 async function prosesKtpOcr() {
-  // if (!form.value.fotoKtp) return;
-  if (!form.value.ktpUrl) return;
+  const member = members.value[currentMemberIndex.value];
+  if (!member.ktpFile) {
+    ocrError.value = "Gambar belum diupload.";
+    return;
+  }
+
   ocrLoading.value = true;
   ocrError.value = "";
   ocrResult.value = null;
 
   try {
-    // const formData = new FormData();
-    // formData.append("image", form.value.fotoKtp);
+    const formData = new FormData();
+    formData.append("image", member.ktpFile);
 
-    // const res = await api.post("/ktp-ocr", formData, {
-    //   headers: { "Content-Type": "multipart/form-data" },
-    //   timeout: 120000,
-    // });
+    const res = await api.post("/members/crop-ktp", formData);
 
-    // if (res.data.success && res.data.data) {
-    //   ocrResult.value = JSON.stringify(res.data, null, 2);
-
-    //   let imageUrl = res.data.processed_image_url;
-    //   if (!imageUrl && res.data.file_paths?.processed_image) {
-    //     const baseUrl =
-    //       window.location.protocol + "//" + window.location.hostname;
-    //     imageUrl = `${baseUrl}/api${res.data.file_paths.processed_image}`;
-    //   }
-
-    //   const ocr = res.data.data;
-    //   const updatedForm = { ...form.value };
-
-    //   if (imageUrl) updatedForm.fotoKtpProcessedUrl = imageUrl;
-    //   if (ocr.nik) {
-    //     updatedForm.nik = ocr.nik;
-    //     if (ocr.nik.length === 16) {
-    //       const provCode = ocr.nik.substring(0, 2);
-    //       const kabCode = ocr.nik.substring(0, 4);
-    //       const matchingProv = provinsiList.value.find((p) =>
-    //         p.id.startsWith(provCode)
-    //       );
-    //       if (matchingProv) {
-    //         updatedForm.provinsiId = matchingProv.id;
-    //         emit("fetch-kabupaten");
-    //         setTimeout(() => {
-    //           const matchingKab = kabupatenList.value.find(
-    //             (k) => k.id === kabCode
-    //           );
-    //           if (matchingKab) {
-    //             updatedForm.kabupatenId = matchingKab.id;
-    //             emit("fetch-kecamatan");
-    //           }
-    //         }, 500);
-    //       }
-    //     }
-    //   }
-    //   if (!updatedForm.nama && ocr.nama)
-    //     updatedForm.nama = toTitleCase(ocr.nama);
-    //   if (ocr.alamat) updatedForm.alamat = toTitleCase(ocr.alamat);
-
-    //   if (ocr.ttl) {
-    //     const ttlParts = ocr.ttl.split(/[,.-]/);
-    //     if (ttlParts.length >= 4) {
-    //       updatedForm.tempatLahir = ttlParts[0].trim();
-    //       updatedForm.tanggalLahir = `${ttlParts[3]}-${ttlParts[2].padStart(
-    //         2,
-    //         "0"
-    //       )}-${ttlParts[1].padStart(2, "0")}`;
-    //     }
-    //   }
-
-    //   if (ocr.kelamin) {
-    //     const kelamin = ocr.kelamin.toUpperCase();
-    //     if (kelamin.includes("LAKI")) updatedForm.jenisKelamin = "Laki-laki";
-    //     else if (kelamin.includes("PEREMPUAN") || kelamin.includes("WANITA"))
-    //       updatedForm.jenisKelamin = "Perempuan";
-    //   }
-
-    //   if (ocr.kawin) {
-    //     const kawin = ocr.kawin.toUpperCase();
-    //     if (kawin.includes("BELUM"))
-    //       updatedForm.statusPerkawinan = "Belum Kawin";
-    //     else if (kawin.includes("KAWIN"))
-    //       updatedForm.statusPerkawinan = "Kawin";
-    //     else if (kawin.includes("CERAI"))
-    //       updatedForm.statusPerkawinan = "Cerai";
-    //   }
-
-    //   if (ocr.kerja) updatedForm.statusPekerjaan = ocr.kerja;
-
-    //   if (!updatedForm.tempatLahir && ocr.tempat_lahir)
-    //     updatedForm.tempatLahir = toTitleCase(ocr.tempat_lahir);
-    //   if (!updatedForm.tanggalLahir && ocr.tanggal_lahir)
-    //     updatedForm.tanggalLahir = ocr.tanggal_lahir;
-    //   if (!updatedForm.jenisKelamin && ocr.jenis_kelamin)
-    //     updatedForm.jenisKelamin = ocr.jenis_kelamin;
-    //   if (!updatedForm.statusPerkawinan && ocr.status_perkawinan)
-    //     updatedForm.statusPerkawinan = ocr.status_perkawinan;
-    //   if (!updatedForm.statusPekerjaan && ocr.status_pekerjaan)
-    //     updatedForm.statusPekerjaan = ocr.status_pekerjaan;
-
-    //   // emit("update:form", updatedForm);
-    // } else {
-    //   throw new Error("Response OCR tidak valid");
-    // }
-    emit("update:form", {
-      ...form.value,
-      nik: "12345678901238745",
-      ktaNumber: "",
-      name: "King Salman",
-      gender: "Laki-laki",
-      birthPlace: "Bandung",
-      birthDate: "12-05-2001",
-      address: "Jl. Merdeka 2",
-      phone: "",
-      email: "",
-      maritalStatus: "Kawin",
-      occupation: "Wiraswasta",
-      skills: "Organisasi, Kepemimpinan",
-      interests: "Politik, Sosial",
-      provinceCode: "32",
-      cityCode: "32.04",
-      districtCode: "32.04.05",
-      villageCode: "32.04.05.2005",
-      ktpProcessedUrl: null,
-      photoUrl: null,
-      certificateUrl: null,
-      registrationType: "admin",
-      registeredById: null,
-      isOfficial: false,
-    });
+    if (res.data.success && res.data.processed_image_url) {
+      member.ktpProcessedUrl = res.data.processed_image_url;
+      member.isProcessed = true;
+      ocrResult.value = JSON.stringify(res.data, null, 2);
+    } else {
+      throw new Error("Respon tidak valid");
+    }
   } catch (err) {
-    console.error("Error OCR:", err);
-    if (err.code === "ECONNABORTED") {
-      ocrError.value =
-        "Proses OCR memakan waktu terlalu lama. Silakan coba lagi atau gunakan gambar yang lebih jelas.";
-    } else if (err.response?.status === 413) {
-      ocrError.value =
-        "File gambar terlalu besar. Gunakan gambar dengan ukuran maksimal 5MB.";
-    } else if (err.response?.status === 400) {
-      ocrError.value =
-        "Format file tidak didukung. Gunakan file gambar (JPG, PNG, dll).";
-    } else if (err.response?.status >= 500) {
-      ocrError.value =
-        "Server OCR sedang bermasalah. Silakan coba beberapa saat lagi.";
+    console.error("❌ Error cropping KTP:", err);
+    if (err.response?.status === 400) {
+      ocrError.value = "Gambar tidak jelas. Pastikan KTP terlihat utuh.";
+    } else if (err.response?.status === 500) {
+      ocrError.value = "Gagal memproses KTP. Silakan coba lagi.";
     } else {
       ocrError.value =
         err.response?.data?.message ||
-        "Gagal memproses KTP. Pastikan gambar jelas dan server OCR aktif.";
+        "Gagal memproses KTP. Pastikan gambar jelas dan tidak blur.";
     }
   } finally {
     ocrLoading.value = false;
   }
 }
+// eslint-disable-next-line
+function downloadProcessedImage() {
+  if (!props.form.ktpProcessedUrl) return;
+
+  const link = document.createElement("a");
+  link.href = props.form.ktpProcessedUrl;
+  link.download = `ktp_cropped_${new Date().getTime()}.jpg`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+// function downloadProcessedImage() {
+//   if (!props.form.ktpProcessedUrl) return;
+//   const a = document.createElement("a");
+//   a.href = props.form.ktpProcessedUrl;
+//   a.download = "ktp_processed_" + new Date().getTime() + ".jpg";
+//   document.body.appendChild(a);
+//   a.click();
+//   document.body.removeChild(a);
+// }
+// eslint-disable-next-line
+function onImageLoad() {
+  console.log("Image loaded successfully:", props.form.ktpProcessedUrl);
+}
+// eslint-disable-next-line
+function onImageError(event) {
+  console.error("Image failed to load:", props.form.ktpProcessedUrl);
+  ocrError.value = "Gagal memuat gambar hasil proses. Silakan coba lagi.";
+}
 </script>
-<template>
-  <div class="ktp-upload-step">
-    <div class="form-group ktp-upload-block">
-      <!-- <label>Upload Foto KTP</label>
-      <input
-        type="file"
-        @change="handleFileUpload"
-        accept="image/*"
-        ref="ktpInput"
-      /> -->
-      <AppFileUpload title="Upload KTP" @upload:file="handleFileUpload" />
 
-      <!-- Preview KTP -->
-      <div class="ktp-upload-preview-container">
-        <div class="ktp-images-comparison">
-          <!-- Slot Original -->
-          <div class="ktp-image-container">
-            <h4>Foto KTP</h4>
-            <template v-if="form.ktpUrl">
-              <img :src="form.ktpUrl" alt="Foto KTP" class="ktp-preview" />
-            </template>
-            <template v-else>
-              <div class="ktp-placeholder">Belum ada foto</div>
-            </template>
-          </div>
-          <div class="ktp-arrow">&#x2192;</div>
-          <div class="ktp-image-container">
-            <h4>Foto Hasil Proses</h4>
-            <template v-if="form.ktpProcessedUrl">
-              <img
-                :src="form.ktpProcessedUrl"
-                :key="form.ktpProcessedUrl + Date.now()"
-                alt="KTP hasil proses"
-                class="ktp-preview processed"
-                @load="onImageLoad"
-                @error="onImageError"
-              />
-              <button
-                type="button"
-                class="btn btn-blue btn-sm"
-                @click="downloadProcessedImage"
-              >
-                Download Foto
-              </button>
-            </template>
-            <template v-else>
-              <div class="ktp-placeholder">Menunggu proses...</div>
-            </template>
-          </div>
-        </div>
-
-        <button
-          v-if="form.ktpUrl && !ocrLoading"
-          type="button"
-          class="btn btn-blue"
-          @click="prosesKtpOcr"
-        >
-          Proses dan Isi Otomatis
-        </button>
-
-        <!-- OCR Result Debug -->
-        <div v-if="ocrResult" class="ocr-result-debug">
-          <details>
-            <summary>Hasil Ekstraksi OCR (debug)</summary>
-            <pre>{{ ocrResult }}</pre>
-          </details>
-        </div>
-
-        <div v-if="ocrLoading" class="ocr-loading">
-          <div class="loading-spinner"></div>
-          <div>Memproses KTP... Mohon tunggu (maksimal 2 menit)</div>
-          <div class="loading-tip">
-            Tips: Pastikan gambar KTP jelas dan tidak blur
-          </div>
-        </div>
-        <div v-if="ocrError" class="ocr-error">
-          <span class="ocr-error-icon"
-            ><svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-            >
-              <path
-                fill="none"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0-18 0m9-3v4m0 3v.01"
-              /></svg></span
-          >{{ ocrError }}
-        </div>
-      </div>
-    </div>
-
-    <!-- Data Diri dari KTP -->
-    <div class="form-row">
-      <div class="form-group">
-        <label>NIK</label>
-        <input v-model="form.nik" maxlength="16" required />
-      </div>
-      <div class="form-group">
-        <label>Nama</label>
-        <input v-model="form.name" required />
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Tempat Lahir</label>
-        <input
-          v-model="form.birthPlace"
-          list="birthplace-list"
-          placeholder="Kota / Kabupaten"
-          required
-        />
-        <datalist id="birthplace-list">
-          <option
-            v-for="r in regionOptions"
-            :key="r.id"
-            :value="r.name"
-          ></option>
-        </datalist>
-      </div>
-      <div class="form-group">
-        <label>Tanggal Lahir</label>
-        <input
-          v-model="dateFormatted"
-          placeholder="DD/MM/YYYY"
-          required
-          type="date"
-        />
-      </div>
-    </div>
-    <!-- Row Tempat & Tanggal + Alamat -->
-    <div class="form-group">
-      <label>Alamat</label>
-      <input v-model="form.address" />
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Jenis Kelamin</label>
-        <select v-model="form.gender" required>
-          <option value="">Pilih</option>
-          <option value="Laki-laki">Laki-laki</option>
-          <option value="Perempuan">Perempuan</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Status Perkawinan</label>
-        <select v-model="form.maritalStatus" required>
-          <option value="">Pilih</option>
-          <option value="Belum Kawin">Belum Kawin</option>
-          <option value="Kawin">Kawin</option>
-          <option value="Cerai">Cerai</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Status Pekerjaan</label>
-        <input v-model="form.occupation" />
-      </div>
-      <div class="form-group">
-        <label>Minat/Bakat</label>
-        <input v-model="form.interests" />
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Email</label>
-        <input v-model="form.email" />
-      </div>
-      <div class="form-group">
-        <label>No. Hp</label>
-        <input v-model="form.phone" />
-      </div>
-    </div>
-
-    <!-- Navigation -->
-    <div class="step-navigation">
-      <button type="button" class="btn btn-green" @click="nextStep">
-        Next
-      </button>
-      <!-- <BaseButton @click="nextStep">Next</BaseButton> -->
-      <!-- <button type="button" class="btn btn-green" @click="nextStep">
-        Lanjut ke Wilayah Pendaftaran
-      </button> -->
-    </div>
-  </div>
-</template>
 <style scoped>
+/* gambar normal */
+.ktp-preview {
+  margin-top: 6px;
+  max-width: 280px;
+  border-radius: 6px;
+  border: 1.5px solid #d0d7e2;
+  cursor: zoom-in;
+  transition: all 0.3s ease;
+}
+
+/* gambar saat zoom (mengisi penuh .upload-column) */
+.ktp-preview.zoomed {
+  max-width: 100%;
+  /* penuh selebar upload-column */
+  /* max-height: 100vh; */
+  /* biar tidak terlalu panjang */
+  cursor: zoom-out;
+  object-fit: contain;
+  /* supaya proporsi tetap */
+}
+
+/* --- SAMA SEPERTI SEBELUMNYA --- */
+/* Hanya sisakan styling untuk upload & preview */
 .ktp-upload-step {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  /* background-color: #3498db; */
   max-width: 600px;
   margin: auto;
 }
@@ -557,7 +541,7 @@ async function prosesKtpOcr() {
 
 .ktp-preview {
   margin-top: 6px;
-  width: 100%;
+  width: 200%;
   max-width: 280px;
   border-radius: 6px;
   border: 1.5px solid #d0d7e2;
@@ -626,6 +610,7 @@ async function prosesKtpOcr() {
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }
@@ -666,99 +651,7 @@ async function prosesKtpOcr() {
   max-height: 200px;
 }
 
-/* Form alignment */
-.form-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-}
-
-.form-row .form-group {
-  flex: 1 1 320px;
-  display: flex;
-  flex-direction: column;
-}
-
-.form-row label {
-  font-weight: 600;
-  margin-bottom: 4px;
-  color: #333;
-}
-
-.form-row input,
-.form-row select {
-  padding: 10px 12px;
-  border: 1.5px solid #d0d7e2;
-  border-radius: 8px;
-  font-size: 1em;
-}
-
-.form-group {
-  margin-bottom: 14px;
-  display: flex;
-  flex-direction: column;
-}
-
-.form-group label {
-  font-weight: 600;
-  margin-bottom: 4px;
-  color: #333;
-}
-
-.form-group input,
-.form-group select {
-  padding: 10px 12px;
-  border: 1.5px solid #d0d7e2;
-  border-radius: 8px;
-  font-size: 1em;
-}
-
-.step-navigation {
-  margin-top: 24px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-/* Button styles */
-.btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
-  font-size: 1em;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-blue {
-  background: #3498db;
-  color: white;
-}
-
-.btn-blue:hover {
-  background: #2980b9;
-}
-
-.btn-green {
-  background: #27ae60;
-  color: white;
-}
-
-.btn-green:hover {
-  background: #229954;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 @media (max-width: 700px) {
-  .form-row {
-    flex-direction: column;
-    gap: 0;
-  }
-
   .ktp-images-comparison {
     flex-direction: column;
   }

@@ -183,31 +183,31 @@ async function main() {
   //     },
   //   });
   // }
-  // await prisma.member.create({
-  //   data: {
-  //     nik: "1234567890123453",
-  //     ktaNumber: "KTA-20250003",
-  //     name: "Salman",
-  //     gender: "Laki-laki",
-  //     birthPlace: "Bandung",
-  //     birthDate: new Date("1990-05-15"),
-  //     address: "Jl. Merdeka 1",
-  //     phone: "081234567890",
-  //     email: "salman@example.com",
-  //     maritalStatus: "Kawin",
-  //     occupation: "Wiraswasta",
-  //     skills: "Organisasi, Kepemimpinan",
-  //     interests: "Politik, Sosial",
-  //     registrationType: "admin",
-  //     provinceCode: "32",
-  //     cityCode: "32.04",
-  //     districtCode: "32.04.05",
-  //     villageCode: "32.04.05.2005",
-  //     isOfficial: false,
-  //     // Optional: connect ke region jika sudah ada
-  //     // province: { connect: { code: '11' } },
-  //   },
-  // });
+  await prisma.member.create({
+    data: {
+      nik: "1234567890123453",
+      ktaNumber: "KTA-20250003",
+      name: "Salman",
+      gender: "Laki-laki",
+      birthPlace: "Bandung",
+      birthDate: new Date("1990-05-15"),
+      address: "Jl. Merdeka 1",
+      phone: "081234567890",
+      email: "salman@example.com",
+      maritalStatus: "Kawin",
+      occupation: "Wiraswasta",
+      skills: "Organisasi, Kepemimpinan",
+      interests: "Politik, Sosial",
+      registrationType: "admin",
+      provinceCode: "32",
+      cityCode: "3204",
+      districtCode: "320405",
+      villageCode: "3204052005",
+      isOfficial: false,
+      // Optional: connect ke region jika sudah ada
+      // province: { connect: { code: '11' } },
+    },
+  });
 
   // await prisma.member.createMany({
   //   data: [
@@ -424,29 +424,29 @@ async function main() {
   //   ],
   // });
 
-  await prisma.member.createMany({
-    data: Array.from({ length: 10 }).map((_, i) => ({
-      nik: `12345678901234${50 + i}`, // unik
-      ktaNumber: `KTA-${Date.now()}-${i}`, // selalu unik
-      name: `Member ${i + 1}`,
-      gender: i % 2 === 0 ? "Laki-laki" : "Perempuan",
-      birthPlace: "Bandung",
-      birthDate: new Date(`199${i}-01-01`),
-      address: `Jl. Merdeka ${i + 1}`,
-      phone: `0812345678${i}0`,
-      email: `member${i + 1}@example.com`,
-      maritalStatus: "Kawin",
-      occupation: "Wiraswasta",
-      skills: "Organisasi, Kepemimpinan",
-      interests: "Politik, Sosial",
-      registrationType: "admin",
-      provinceCode: "32",
-      cityCode: "32.04",
-      districtCode: "32.04.05",
-      villageCode: "32.04.05.2005",
-      isOfficial: false,
-    })),
-  });
+  // await prisma.member.createMany({
+  //   data: Array.from({ length: 10 }).map((_, i) => ({
+  //     nik: `12345678901234${50 + i}`, // unik
+  //     ktaNumber: `KTA-${Date.now()}-${i}`, // selalu unik
+  //     name: `Member ${i + 1}`,
+  //     gender: i % 2 === 0 ? "Laki-laki" : "Perempuan",
+  //     birthPlace: "Bandung",
+  //     birthDate: new Date(`199${i}-01-01`),
+  //     address: `Jl. Merdeka ${i + 1}`,
+  //     phone: `0812345678${i}0`,
+  //     email: `member${i + 1}@example.com`,
+  //     maritalStatus: "Kawin",
+  //     occupation: "Wiraswasta",
+  //     skills: "Organisasi, Kepemimpinan",
+  //     interests: "Politik, Sosial",
+  //     registrationType: "admin",
+  //     provinceCode: "32",
+  //     cityCode: "32.04",
+  //     districtCode: "32.04.05",
+  //     villageCode: "32.04.05.2005",
+  //     isOfficial: false,
+  //   })),
+  // });
 
   // await prisma.member.create({
   //   data: {

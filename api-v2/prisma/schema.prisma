@@ -122,3 +122,14 @@ model AuditLog {
   userAgent   String?
   createdAt   DateTime  @default(now())
 }
+model Surat {
+  id          String   @id @default(cuid())
+  jenisSurat  String   // "undangan", "pemberitahuan", "tugas", "keterangan"
+  judul       String?
+  isi         Json     // 👈 Simpan semua data input sebagai JSON (fleksibel)
+  tanggal     DateTime @default(now())
+  status      String   @default("draft") // draft, published
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

@@ -59,6 +59,21 @@ class MemberService {
       );
     }
   }
+  async checkNikUniqueness(nik) {
+    try {
+      const response = await api.get(`/members/check-nik`, {
+        params: { nik } // Kirim NIK sebagai query parameter
+      });
+      return response.data; // { exists: true/false, message: "..." }
+    } catch (error) {
+      throw (
+        error.response?.data ||
+        error.message ||
+        "Gagal memeriksa NIK. Silakan coba lagi."
+      );
+    }
+  }
+
 }
 
 export default new MemberService();

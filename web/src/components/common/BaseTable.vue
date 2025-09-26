@@ -1,4 +1,5 @@
 <script setup>
+// eslint-disable-next-line
 import { computed, ref, watch } from "vue";
 
 const props = defineProps({
@@ -9,52 +10,108 @@ const props = defineProps({
   onDetail: Boolean,
   onEdit: Boolean,
   onDelete: Boolean,
-});
+  currentPage: Number,
 
+  // ✅ BARU: Untuk multi-select
+  selectable: {
+    type: Boolean,
+    default: false,
+  },
+  selectedItems: {
+    type: Array,
+    default: () => [],
+  },
+  totalPages: {
+    type: Number,
+    default: 1,
+  },
+});
+const emit = defineEmits([
+  "edit",
+  "delete",
+  "detail",
+  "page-change", // 👈 Baru
+  "selection-change", // 👈 Baru
+]);
+
+// Status seleksi lokal (hanya untuk halaman saat ini)
+const localSelectedIds = ref(new Set(props.selectedItems.map((item) => item.id)));
+
+// Fungsi untuk mengecek apakah item terpilih
+const isSelected = (item) => localSelectedIds.value.has(item.id);
+
+// Toggle satu item
+const toggleSelect = (item) => {
+  if (localSelectedIds.value.has(item.id)) {
+    localSelectedIds.value.delete(item.id);
+  } else {
+    localSelectedIds.value.add(item.id);
+  }
+  emitSelectionChange();
+};
+
+// Toggle semua item di halaman ini
+const toggleSelectAll = () => {
+  const currentItems = paginatedItems.value;
+  if (currentItems.length === 0) return;
+
+  const allSelected = currentItems.every(isSelected);
+  if (allSelected) {
+    currentItems.forEach((item) => localSelectedIds.value.delete(item.id));
+  } else {
+    currentItems.forEach((item) => localSelectedIds.value.add(item.id));
+  }
+  emitSelectionChange();
+};
+
+// Emit event ke parent
+const emitSelectionChange = () => {
+  const selected = props.items.filter((item) =>
+    localSelectedIds.value.has(item.id)
+  );
+  emit("selection-change", selected);
+};
+// eslint-disable-next-line
 const hasActions = props.onDetail || props.onEdit || props.onDelete;
+// eslint-disable-next-line
 const currentPage = ref(1);
 
 const getRowValue = (obj, path) => {
   return path.split(".").reduce((acc, part) => acc?.[part], obj) ?? "";
 };
 
-const totalPages = computed(() =>
-  Math.ceil(props.items.length / props.rowsPerPage)
-);
-
-const paginatedItems = computed(() => {
-  const start = (currentPage.value - 1) * props.rowsPerPage;
-  return props.items.slice(start, start + props.rowsPerPage);
-});
-
-function nextPage() {
-  if (currentPage.value < totalPages.value) currentPage.value++;
-}
-function prevPage() {
-  if (currentPage.value > 1) currentPage.value--;
-}
-
-watch(
-  () => props.items,
-  () => {
-    currentPage.value = 1;
-  }
-);
+const paginatedItems = computed(() => props.items);
 </script>
 <template>
   <div class="table-container">
     <table class="data-table">
       <thead>
         <tr>
-          <th v-for="col in columns" :key="col.key">{{ col.label }}</th>
+          <!-- Checkbox Header -->
+          <th v-if="props.selectable" style="width: 40px; text-align: center;">
+            <input type="checkbox" :checked="paginatedItems.length > 0 &&
+              paginatedItems.every(isSelected) &&
+              !paginatedItems.some((item) => !isSelected(item))
+              " @change="toggleSelectAll" />
+          </th>
+
+          <!-- Kolom Data -->
+          <th v-for="col in columns" :key="col.key">
+            {{ col.label }}
+          </th>
+
+          <!-- Aksi -->
           <th v-if="hasActions">Aksi</th>
         </tr>
       </thead>
 
       <tbody>
-        <!-- Skeleton Loading State -->
+        <!-- Skeleton Loading -->
         <template v-if="loading">
           <tr v-for="n in rowsPerPage" :key="'skeleton-' + n">
+            <td v-if="props.selectable">
+              <div class="skeleton" style="width: 20px; height: 20px; border-radius: 4px;"></div>
+            </td>
             <td v-for="col in columns" :key="col.key">
               <div class="skeleton"></div>
             </td>
@@ -71,89 +128,113 @@ watch(
         <!-- Data Rows -->
         <template v-else>
           <tr v-for="item in paginatedItems" :key="item.id">
-            <td v-for="col in columns" :key="col.key">
-              {{ getRowValue(item, col.key) }}
+            <!-- Checkbox Row -->
+            <td v-if="props.selectable" style="text-align: center;">
+              <input type="checkbox" :checked="isSelected(item)" @change="toggleSelect(item)" />
             </td>
+
+            <!-- Data Cells -->
+            <td v-for="col in columns" :key="col.key">
+              <!-- Jika ada prop 'default', gunakan jika nilai null/undefined -->
+              {{
+                col.default && getRowValue(item, col.key) == ""
+                  ? col.default
+                  : getRowValue(item, col.key)
+              }}
+            </td>
+
+            <!-- Aksi -->
             <td v-if="hasActions">
-              <!-- <button
-                v-if="onDetail"
-                class="btn detail"
-                @click="$emit('detail', item)"
-              >
-                Detail
-              </button> -->
-              <button
-                v-if="onEdit"
-                class="btn edit"
-                @click="$emit('edit', item)"
-                title="Edit data"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                >
-                  <g
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="1.5"
-                  >
-                    <path
-                      d="m16.214 4.982l1.402-1.401a1.982 1.982 0 0 1 2.803 2.803l-1.401 1.402m-2.804-2.804l-5.234 5.234c-1.045 1.046-1.568 1.568-1.924 2.205S8.342 14.561 8 16c1.438-.342 2.942-.7 3.579-1.056s1.16-.879 2.205-1.924l5.234-5.234m-2.804-2.804l2.804 2.804"
-                    />
-                    <path
-                      d="M21 12c0 4.243 0 6.364-1.318 7.682S16.242 21 12 21s-6.364 0-7.682-1.318S3 16.242 3 12s0-6.364 1.318-7.682S7.758 3 12 3"
-                    />
-                  </g>
+              <button v-if="onDetail" class="btn detail" @click="$emit('detail', item)" title="Detail">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+                  <path d="M9 12l2 2 4-4" />
                 </svg>
               </button>
-              <button
-                v-if="onDelete"
-                class="btn delete"
-                @click="$emit('delete', item)"
-                title="Delete data"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="1.5"
-                    d="m19.5 5.5l-.62 10.025c-.158 2.561-.237 3.842-.88 4.763a4 4 0 0 1-1.2 1.128c-.957.584-2.24.584-4.806.584c-2.57 0-3.855 0-4.814-.585a4 4 0 0 1-1.2-1.13c-.642-.922-.72-2.205-.874-4.77L4.5 5.5M3 5.5h18m-4.944 0l-.683-1.408c-.453-.936-.68-1.403-1.071-1.695a2 2 0 0 0-.275-.172C13.594 2 13.074 2 12.035 2c-1.066 0-1.599 0-2.04.234a2 2 0 0 0-.278.18c-.395.303-.616.788-1.058 1.757L8.053 5.5m1.447 11v-6m5 6v-6"
-                  />
+
+              <button v-if="onEdit" class="btn edit" @click="$emit('edit', item)" title="Edit">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                </svg>
+              </button>
+
+              <button v-if="onDelete" class="btn delete" @click="$emit('delete', item)" title="Hapus">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                 </svg>
               </button>
             </td>
           </tr>
+
+          <!-- No Data -->
           <tr v-if="!paginatedItems.length">
-            <td :colspan="columns.length + (hasActions ? 1 : 0)">
+            <td :colspan="columns.length + (hasActions ? 1 : 0) + (props.selectable ? 1 : 0)">
               <div class="no-data">Data tidak ditemukan.</div>
             </td>
           </tr>
         </template>
       </tbody>
     </table>
+    <!-- Pagination Navigation -->
+    <div v-if="props.totalPages > 1" class="pagination">
+      <button class="pagination-btn" :disabled="props.currentPage <= 1"
+        @click="$emit('page-change', props.currentPage - 1)">
+        ← Sebelumnya
+      </button>
 
-    <!-- Pagination -->
-    <div class="pagination" v-if="!loading && totalPages > 1">
-      <button @click="prevPage" :disabled="currentPage === 1">« Prev</button>
-      <span>Halaman {{ currentPage }} dari {{ totalPages }}</span>
-      <button @click="nextPage" :disabled="currentPage === totalPages">
-        Next »
+      <span class="pagination-info">
+        Halaman {{ props.currentPage }} dari {{ props.totalPages }}
+      </span>
+
+      <button class="pagination-btn" :disabled="props.currentPage >= props.totalPages"
+        @click="$emit('page-change', props.currentPage + 1)">
+        Berikutnya →
       </button>
     </div>
   </div>
 </template>
 <style scoped>
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 12px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background-color: #f0f0f0;
+  color: #333;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: #e0e0e0;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  font-weight: 500;
+  color: #555;
+  font-size: 14px;
+}
+
 .table-container {
   overflow-x: auto;
   border-radius: 12px;
@@ -200,11 +281,13 @@ watch(
   background: #e0e7ff;
   color: #4338ca;
 }
+
 .btn.edit {
   padding: 3px;
   background: #fef3c7;
   color: #b45309;
 }
+
 .btn.delete {
   padding: 3px;
   background: #fecaca;
@@ -224,6 +307,7 @@ watch(
   gap: 12px;
   align-items: center;
 }
+
 .pagination button {
   background: #eee;
   border: none;
@@ -232,6 +316,7 @@ watch(
   cursor: pointer;
   font-size: 14px;
 }
+
 .pagination button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -260,6 +345,7 @@ watch(
   0% {
     background-position: 200% 0;
   }
+
   100% {
     background-position: -200% 0;
   }

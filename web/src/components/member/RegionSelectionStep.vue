@@ -9,6 +9,7 @@ const props = defineProps({
   kabupatenList: { type: Array, required: true },
   kecamatanList: { type: Array, required: true },
   kelurahanList: { type: Array, required: true },
+  isEdit: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -25,24 +26,15 @@ const { showAlert } = useAlert();
 
 const isFormValid = computed(() => {
   return (
-    props.form.provinceCode &&
-    props.form.cityCode &&
-    props.form.districtCode &&
-    props.form.villageCode
+    localProvinceCode.value &&
+    localCityCode.value &&
+    localDistrictCode.value &&
+    localVillageCode.value
   );
 });
 
-const isCreated = ref(true);
+const isCreated = ref(false);
 
-const prevStep = () => {
-  emit("prev-step");
-};
-
-const nextStep = () => {
-  if (isFormValid.value) {
-    emit("next-step");
-  }
-};
 
 const updateProvinsi = (event) => {
   const provinceCode = event.target.value;
@@ -100,7 +92,70 @@ const updateConfirmation = (event) => {
     isConfirmed: event.target.checked,
   });
 };
+const localKtaNumber = computed({
+  get() {
+    return props.form?.ktaNumber || "";
+  },
+  // eslint-disable-next-line
+  set(value) {
+    // Tidak perlu setter karena readonly
+    // Tapi biarkan agar tidak error jika suatu hari diubah jadi v-model
+  },
+});
+const localProvinceCode = computed({
+  get() {
+    return props.form?.provinceCode || "";
+  },
+  set(value) {
+    emit("update:form", {
+      ...props.form,
+      provinceCode: value,
+      cityCode: "",
+      districtCode: "",
+      villageCode: "",
+    });
+  },
+});
 
+const localCityCode = computed({
+  get() {
+    return props.form?.cityCode || "";
+  },
+  set(value) {
+    emit("update:form", {
+      ...props.form,
+      cityCode: value,
+      districtCode: "",
+      villageCode: "",
+    });
+  },
+});
+
+const localDistrictCode = computed({
+  get() {
+    return props.form?.districtCode || "";
+  },
+  set(value) {
+    emit("update:form", {
+      ...props.form,
+      districtCode: value,
+      villageCode: "",
+    });
+  },
+});
+
+const localVillageCode = computed({
+  get() {
+    return props.form?.villageCode || "";
+  },
+  set(value) {
+    emit("update:form", {
+      ...props.form,
+      villageCode: value,
+    });
+  },
+});
+// eslint-disable-next-line
 const handleCreateMember = async () => {
   try {
     const form = props.form;
@@ -110,7 +165,7 @@ const handleCreateMember = async () => {
       name: form.name,
       gender: form.gender,
       birthPlace: form.birthPlace || null,
-      birthDate: form.birthDate ? new Date(form.birthDate) : null, // ✅ fix Date
+      birthDate: form.birthDate ? new Date(form.birthDate) : null,
       address: form.address || null,
       phone: form.phone || null,
       email: form.email || null,
@@ -130,11 +185,18 @@ const handleCreateMember = async () => {
       registeredById: form.registeredById || null,
       isOfficial: form.isOfficial ?? false,
     };
-    const res = await api.post("/members", payload);
-    if (res) {
-      showAlert("Anggota berhasil ditambahkan", "success");
+
+    let res;
+    if (props.isEdit) {  // ✅ BENAR — akses via props
+      res = await api.put(`/members/${form.id}`, payload);
+    } else {
+      res = await api.post("/members", payload);
     }
-    isCreated.value = true;
+
+    if (res) {
+      showAlert(props.isEdit ? "Anggota berhasil diupdate" : "Anggota berhasil ditambahkan", "success");
+      isCreated.value = true;
+    }
   } catch (error) {
     const message = error.response?.data?.message || "Terjadi kesalahan.";
     showAlert(message, "error");
@@ -142,11 +204,7 @@ const handleCreateMember = async () => {
 };
 
 watch(
-  [
-    () => props.form.provinceCode,
-    () => props.form.cityCode,
-    () => props.form.districtCode,
-  ],
+  [localProvinceCode, localCityCode, localDistrictCode],
   ([newProv, newCity, newDistrict]) => {
     if (newProv) emit("fetch-kabupaten");
     if (newCity) emit("fetch-kecamatan");
@@ -154,7 +212,6 @@ watch(
   },
   { immediate: true }
 );
-
 // watch(
 //   () => props.form.provinceCode,
 //   (newVal) => {
@@ -266,11 +323,7 @@ watch(
     <div class="form-row">
       <div class="form-group">
         <label>Provinsi</label>
-        <select
-          :value="form.provinceCode"
-          @change="updateProvinsi($event)"
-          required
-        >
+        <select v-model="localProvinceCode" @change="updateProvinsi($event)" required>
           <option value="">Pilih Provinsi</option>
           <option v-for="p in provinsiList" :value="p.code" :key="p.code">
             {{ p.name }}
@@ -279,12 +332,7 @@ watch(
       </div>
       <div class="form-group">
         <label>Kabupaten/Kota</label>
-        <select
-          :value="form.cityCode"
-          @change="updateKabupaten($event)"
-          :disabled="!kabupatenList.length"
-          required
-        >
+        <select v-model="localCityCode" @change="updateKabupaten($event)" :disabled="!kabupatenList.length" required>
           <option value="">Pilih Kabupaten/Kota</option>
           <option v-for="k in kabupatenList" :value="k.code" :key="k.code">
             {{ k.name }}
@@ -296,12 +344,8 @@ watch(
     <div class="form-row">
       <div class="form-group">
         <label>Kecamatan</label>
-        <select
-          :value="form.districtCode"
-          @change="updateKecamatan($event)"
-          :disabled="!kecamatanList.length"
-          required
-        >
+        <select v-model="localDistrictCode" @change="updateKecamatan($event)" :disabled="!kecamatanList.length"
+          required>
           <option value="">Pilih Kecamatan</option>
           <option v-for="k in kecamatanList" :value="k.code" :key="k.code">
             {{ k.name }}
@@ -310,12 +354,7 @@ watch(
       </div>
       <div class="form-group">
         <label>Kelurahan/Desa</label>
-        <select
-          :value="form.villageCode"
-          @change="updateKelurahan($event)"
-          :disabled="!kelurahanList.length"
-          required
-        >
+        <select v-model="localVillageCode" @change="updateKelurahan($event)" :disabled="!kelurahanList.length" required>
           <option value="">Pilih Kelurahan/Desa</option>
           <option v-for="k in kelurahanList" :value="k.code" :key="k.code">
             {{ k.name }}
@@ -326,20 +365,10 @@ watch(
 
     <div class="form-row">
       <div class="form-group">
-        <!-- <label>No. KTA</label>
-        <input :value="form.noKta" readonly />
-        <div class="field-info">
-          Nomor KTA akan digenerate otomatis berdasarkan wilayah
-        </div> -->
         <label>No. KTA</label>
         <div class="input-with-button">
-          <input :value="form.ktaNumber" readonly />
-          <button
-            type="button"
-            class="btn btn-blue"
-            @click="generateKta"
-            :disabled="!isFormValid"
-          >
+          <input :value="localKtaNumber" readonly />
+          <button type="button" class="btn btn-blue" @click="generateKta" :disabled="!isFormValid">
             Generate
           </button>
         </div>
@@ -356,12 +385,7 @@ watch(
     <div class="form-row">
       <div class="form-group">
         <div class="form-checkbox">
-          <input
-            type="checkbox"
-            @change="updateConfirmation($event)"
-            id="isConfirmed"
-            required
-          />
+          <input type="checkbox" @change="updateConfirmation($event)" id="isConfirmed" required />
           <!-- <input
           type="checkbox"
           :checked="form.isConfirmed"
@@ -375,25 +399,7 @@ watch(
     </div>
 
     <!-- Navigation -->
-    <div class="step-navigation">
-      <button type="button" class="btn" @click="prevStep">Kembali</button>
-      <button
-        type="button"
-        class="btn btn-green"
-        @click="isCreated ? nextStep() : handleCreateMember()"
-        :disabled="!form.isConfirmed"
-      >
-        {{ isCreated ? "Cetak KTA" : "Tambah Anggota" }}
-      </button>
-      <!-- <button
-        type="button"
-        class="btn btn-green"
-        @click="nextStep"
-        :disabled="!isFormValid"
-      >
-        Lanjut ke Cetak KTA
-      </button> -->
-    </div>
+
   </div>
 </template>
 <style scoped>
@@ -456,13 +462,15 @@ h3 {
   border-radius: 8px;
   font-size: 1em;
 }
+
 .form-checkbox {
   display: flex;
   align-items: baseline;
   gap: 10px;
   /* background-color: #2980b9; */
 }
-.form-checkbox > label {
+
+.form-checkbox>label {
   font-size: 14px;
   font-weight: 500;
 }

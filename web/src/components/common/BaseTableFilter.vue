@@ -130,36 +130,15 @@ onMounted(() => {
 <template>
   <div class="filters">
     <!-- <input type="text" v-model="localSearch" placeholder="Cari anggota..." /> -->
-    <BaseInput
-      type="text"
-      v-model="localSearch"
-      placeholder="Cari anggota..."
-      class="search-member"
-    />
+    <BaseInput type="text" v-model="localSearch" placeholder="Cari anggota..." class="search-member" />
     <!-- <select v-model="localProvinsi">
       <option>Provinsi</option>
       Tambahkan opsi provinsi
     </select> -->
-    <BaseSelect
-      v-model="localProvinsi"
-      :options="provinsiList"
-      label="Provinsi"
-    />
-    <BaseSelect
-      v-model="localKota"
-      :options="kotaList"
-      label="Kota/Kabupaten"
-    />
-    <BaseSelect
-      v-model="localKecamatan"
-      :options="kecamatanList"
-      label="Kecamatan"
-    />
-    <BaseSelect
-      v-model="localDesa"
-      :options="desaList"
-      label="Desa/Kelurahan"
-    />
+    <BaseSelect v-model="localProvinsi" :options="provinsiList" label="Provinsi" />
+    <BaseSelect v-model="localKota" :options="kotaList" label="Kota/Kabupaten" />
+    <BaseSelect v-model="localKecamatan" :options="kecamatanList" label="Kecamatan" />
+    <BaseSelect v-model="localDesa" :options="desaList" label="Desa/Kelurahan" />
     <!-- <select v-model="localKota">
       <option>Kota/Kabupaten</option>
     </select>
@@ -170,7 +149,9 @@ onMounted(() => {
       <option>Desa/Kelurahan</option>
     </select> -->
     <!-- <button @click="reset" class="reset-button">Reset</button> -->
-    <BaseButton @click="reset"><p class="reset-button">Reset</p></BaseButton>
+    <BaseButton @click="reset">
+      <p class="reset-button">Reset</p>
+    </BaseButton>
   </div>
 </template>
 <style scoped>

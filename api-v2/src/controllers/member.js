@@ -46,3 +46,42 @@ export async function deleteMember(req, res, next) {
     next(err);
   }
 }
+// Fungsi baru untuk memeriksa keunikan NIK
+export async function checkNikUniqueness(req, res, next) {
+  try {
+    const { nik } = req.query;
+
+    // Validasi: Pastikan NIK disediakan
+    if (!nik) {
+      return res.status(400).json({
+        error: 'Parameter NIK wajib diisi'
+      });
+    }
+
+    // Validasi: Pastikan NIK adalah string 16 digit
+    if (typeof nik !== 'string' || nik.length !== 16 || !/^\d{16}$/.test(nik)) {
+      return res.status(400).json({
+        error: 'NIK harus terdiri dari 16 digit angka'
+      });
+    }
+
+    // Cek ke database apakah NIK sudah ada
+    const existingMember = await prisma.member.findUnique({
+      where: {
+        nik: nik
+      }
+    });
+
+    // Kirim respons
+    res.json({
+      exists: !!existingMember, // true jika ditemukan, false jika unik
+      message: existingMember
+        ? 'NIK sudah terdaftar di sistem'
+        : 'NIK tersedia untuk digunakan'
+    });
+
+  } catch (error) {
+    console.error('Error checking NIK uniqueness:', error);
+    next(error); // Gunakan error handler global
+  }
+}

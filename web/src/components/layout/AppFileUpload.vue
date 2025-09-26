@@ -1,7 +1,11 @@
 <script setup>
 import { ref } from "vue";
+// eslint-disable-next-line
 const props = defineProps({
-  title: String,
+  title: {
+    type: String,
+    default: "Upload KTP",
+  },
 });
 // const emit = defineEmits(["ocr-finished"]);
 const emit = defineEmits(["upload:file"]);
@@ -20,6 +24,7 @@ const emit = defineEmits(["upload:file"]);
 // });
 
 const fileInput = ref(null);
+
 const selectedFile = ref(null);
 const uploadProgress = ref(0);
 const uploading = ref(false);
@@ -32,8 +37,28 @@ const uploading = ref(false);
 //   gender: "",
 // });
 
-const triggerFileInput = () => fileInput.value?.click();
+function triggerFileInput() {
+  fileInput.value?.click();
+}
+function onFilesChange(event) {
+  const files = Array.from(event.target.files);
+  if (files.length === 0) {
+    emit("upload:files", []);
+    return;
+  }
 
+  const validFiles = files.filter(
+    (file) => ["image/jpeg", "image/jpg", "image/png"].includes(file.type)
+  );
+
+  if (validFiles.length === 0) {
+    alert("Format file hanya boleh JPG atau PNG.");
+    return;
+  }
+
+  emit("upload:files", validFiles); // 👈 KIRIM ARRAY FILE
+}
+// eslint-disable-next-line
 const handleFileUpload = (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -65,7 +90,7 @@ const handleFileUpload = (e) => {
     }
   }, 300);
 };
-
+// eslint-disable-next-line
 const resetUpload = () => {
   selectedFile.value = null;
   uploadProgress.value = 0;
@@ -87,88 +112,13 @@ const resetUpload = () => {
 };
 </script>
 <template>
-  <div class="upload-section">
-    <h3>{{ props.title }}</h3>
-    <div class="upload-area" @click="triggerFileInput">
-      <input type="file" ref="fileInput" @change="handleFileUpload" hidden />
-      <div class="upload-placeholder">
-        <!-- <img src="/upload-icon.svg" alt="Upload Icon" class="upload-icon" /> -->
-        <span class="upload-icon">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="35"
-            height="35"
-            viewBox="0 0 24 24"
-          >
-            <g
-              fill="none"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.5"
-            >
-              <path
-                d="M5 21c4.21-4.751 8.941-11.052 16-6.327M17 4.5c.491-.506 1.8-2.5 2.5-2.5M22 4.5c-.491-.506-1.8-2.5-2.5-2.5m0 0v8"
-              />
-              <path
-                d="M21 13c-.002 4.147-.053 6.27-1.391 7.609C18.217 22 15.979 22 11.5 22c-4.478 0-6.718 0-8.109-1.391S2 16.979 2 12.5c0-4.478 0-6.718 1.391-8.109S7.021 3 11.5 3H14"
-              />
-            </g>
-          </svg>
-        </span>
-        <p class="upload-text">Upload a KTP scan</p>
-        <p class="upload-subtext">Max size: 5 MB | Format: JPG, PNG</p>
-      </div>
-    </div>
-
-    <div v-if="selectedFile" class="upload-status">
-      <div class="file-info">
-        <span class="file-icon">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-          >
-            <g
-              fill="none"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.5"
-            >
-              <circle cx="7.5" cy="7.5" r="1.5" />
-              <path
-                d="M2.5 12c0-4.478 0-6.718 1.391-8.109S7.521 2.5 12 2.5c4.478 0 6.718 0 8.109 1.391S21.5 7.521 21.5 12c0 4.478 0 6.718-1.391 8.109S16.479 21.5 12 21.5c-4.478 0-6.718 0-8.109-1.391S2.5 16.479 2.5 12"
-              />
-              <path d="M5 21c4.372-5.225 9.274-12.116 16.498-7.458" />
-            </g>
-          </svg>
-        </span>
-        <!-- <img src="/file-icon.svg" alt="File" class="file-icon" /> -->
-        <div>
-          <p class="file-name">{{ selectedFile.name }}</p>
-          <p class="file-size">
-            {{ (selectedFile.size / 1024 / 1024).toFixed(2) }} MB
-          </p>
-        </div>
-        <button class="close-btn" @click="resetUpload">✖</button>
-      </div>
-
-      <div class="progress-container" v-if="uploadProgress < 100 && uploading">
-        <div
-          class="progress-bar"
-          :style="{ width: uploadProgress + '%' }"
-        ></div>
-      </div>
-    </div>
+  <div class="ktp-upload-block">
+    <label class="upload-label" @click="triggerFileInput">
+      {{ title }}
+    </label>
+    <input type="file" accept="image/jpeg,image/png" multiple @change="onFilesChange" style="display: none"
+      ref="fileInput" />
   </div>
-
-  <!-- Section Preview Foto -->
-  <!-- <div v-if="ocrResult.image" class="preview-section">
-    <h3>Preview KTP</h3>
-    <img :src="ocrResult.image" alt="Preview KTP" class="ktp-image" />
-  </div> -->
 </template>
 <style scoped>
 .upload-area {
@@ -179,6 +129,8 @@ const resetUpload = () => {
   padding: 2rem;
   cursor: pointer;
   transition: background 0.2s;
+  height: 150px;
+  /* width: 10px; */
 }
 
 .upload-area:hover {
@@ -332,12 +284,30 @@ const resetUpload = () => {
 }
 
 @keyframes bounce {
+
   0%,
   100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-8px);
   }
+}
+
+.upload-label {
+  display: block;
+  padding: 16px 24px;
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  font-weight: 600;
+  color: #333;
+  transition: background-color 0.3s;
+}
+
+.upload-label:hover {
+  background-color: #e0e0e0;
 }
 </style>

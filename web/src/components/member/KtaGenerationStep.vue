@@ -2,12 +2,22 @@
 import { computed } from "vue";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { useRouter } from "vue-router";
+const router = useRouter();
 // import api from "@/services/api.service";
 // import { useAlert } from "@/composables/useAlert";
 // import BaseButton from "../common/BaseButton.vue";
 
-// const { showAlert } = useAlert();
+// // const { showAlert } = useAlert();
+// console.log("🔍 [KTA-STEP] Props form diterima:", props.form);
 
+// // Buat computed sementara untuk debug
+// const debugForm = computed(() => ({
+//   ktaNumber: props.form.ktaNumber,
+//   name: props.form.name,
+//   nik: props.form.nik,
+// }));
+// console.log("📊 [DEBUG] Nilai aktual di KtaGenerationStep:", debugForm.value);
 const props = defineProps({
   form: {
     type: Object,
@@ -18,7 +28,7 @@ const props = defineProps({
     default: false,
   },
 });
-
+// eslint-disable-next-line
 const emit = defineEmits(["update:form", "prev-step"]);
 
 const formatTanggalLahir = computed(() => {
@@ -37,10 +47,6 @@ const formatTanggalLahir = computed(() => {
 //     isConfirmed: event.target.checked,
 //   });
 // };
-
-const prevStep = () => {
-  emit("prev-step");
-};
 
 // const downloadKta = () => {
 //   if (!props.form.isConfirmed) return;
@@ -67,6 +73,7 @@ const printKta = () => {
     pdf.output("dataurlnewwindow");
   });
 };
+console.log("🩸 [KTA STEP] FORM AKHIR:", props.form);
 
 // const handleCreateMember = async () => {
 //   try {
@@ -138,6 +145,24 @@ const printKta = () => {
 //     showAlert(message, "error");
 //   }
 // };
+
+const handleEdit = () => {
+  if (!props.form.id) {
+    alert("Data belum tersimpan. Silakan simpan terlebih dahulu.");
+    return;
+  }
+  router.push(`/member/${props.form.id}/edit`); // ✅ BENAR — sesuai route Anda
+};
+
+// ✅ TAMBAH ANGGOTA BARU: BUKA FORM BARU (kosong)
+const handleAddNew = () => {
+  router.push("/member/create-new-member"); // ✅ SESUAI ROUTE ANDA
+};
+
+// ✅ SELESAI: KEMBALI KE DAFTAR ANGGOTA
+const handleFinish = () => {
+  router.push("/member");
+};
 </script>
 <!-- <script>
 import html2canvas from "html2canvas";
@@ -241,25 +266,24 @@ export default {
           <div class="kta-data">
             <div class="kta-field">
               <span class="kta-label">No. KTA:</span>
-              <span class="kta-value">{{ form.ktaNumber }}</span>
+              <span class="kta-value">{{ form.ktaNumber || 'KOSONG!' }}</span> <!-- 👈 TAMBAHKAN || 'KOSONG!' -->
             </div>
             <div class="kta-field">
               <span class="kta-label">Nama:</span>
-              <span class="kta-value">{{ form.name }}</span>
+              <span class="kta-value">{{ form.name || 'KOSONG!' }}</span>
             </div>
             <div class="kta-field">
               <span class="kta-label">NIK:</span>
-              <span class="kta-value">{{ form.nik }}</span>
+              <span class="kta-value">{{ form.nik || 'KOSONG!' }}</span>
             </div>
             <div class="kta-field">
               <span class="kta-label">TTL:</span>
-              <span class="kta-value"
-                >{{ form.birthPlace }}, {{ formatTanggalLahir }}</span
-              >
+              <span class="kta-value">{{ form.birthPlace ? `${form.birthPlace}, ${formatTanggalLahir}` : 'KOSONG!'
+              }}</span>
             </div>
             <div class="kta-field">
               <span class="kta-label">Alamat:</span>
-              <span class="kta-value">{{ form.address }}</span>
+              <span class="kta-value">{{ form.address || 'KOSONG!' }}</span>
             </div>
           </div>
         </div>
@@ -272,7 +296,7 @@ export default {
           </div>
 
           <div class="kta-signature">
-            <p>{{ form.penerbitKta }}</p>
+            <p></p>
             <div class="kta-sign-placeholder"></div>
             <p>Ketua Umum</p>
           </div>
@@ -293,39 +317,85 @@ export default {
 
     <div class="kta-actions">
       <!-- <BaseButton>Download KTA</BaseButton> -->
-      <button
-        type="button"
-        class="btn btn-blue"
-        @click="downloadKta"
-        :disabled="!form.isConfirmed"
-      >
+      <button type="button" class="btn btn-blue" @click="downloadKta" :disabled="!form.isConfirmed">
         <i class="fas fa-download"></i> Download KTA
       </button>
-      <button
-        type="button"
-        class="btn btn-green"
-        @click="printKta"
-        :disabled="!form.isConfirmed"
-      >
+      <button type="button" class="btn btn-green" @click="printKta">
         <i class="fas fa-print"></i> Cetak KTA
       </button>
     </div>
 
     <!-- Navigation -->
     <div class="step-navigation">
-      <button type="button" class="btn" @click="prevStep">Kembali</button>
-      <button
-        type="button"
-        class="btn btn-green"
-        :disabled="!form.isConfirmed"
-        @click="handleCreateMember"
-      >
-        {{ isEdit ? "Simpan Perubahan" : "Tambah Anggota" }}
+      <!-- Tombol Edit -->
+      <button type="button" class="btn btn-blue" @click="handleEdit" :disabled="!form.id">
+        🖊️ Edit Data
+      </button>
+
+      <!-- Tombol Tambah Anggota Baru -->
+      <button type="button" class="btn btn-green" @click="handleAddNew">
+        ➕ Tambah Anggota Baru
+      </button>
+
+      <!-- Tombol Selesai -->
+      <button type="button" class="btn btn-primary" @click="handleFinish">
+        ✅ Selesai
       </button>
     </div>
   </div>
 </template>
 <style scoped>
+.step-navigation {
+  margin-top: 30px;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 140px;
+}
+
+.btn-blue {
+  background-color: #3498db;
+  color: white;
+}
+
+.btn-blue:hover {
+  background-color: #2980b9;
+}
+
+.btn-green {
+  background-color: #27ae60;
+  color: white;
+}
+
+.btn-green:hover {
+  background-color: #219955;
+}
+
+.btn-primary {
+  background-color: #6c63ff;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #5a57e0;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 h3 {
   margin-bottom: 20px;
   color: var(--primary);

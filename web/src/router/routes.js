@@ -42,6 +42,16 @@ export default [
     },
   },
   {
+    path: "/member/:id/edit",
+    name: "EditMember",
+    component: () => import("@/views/AddNewMember.vue"), // 👈 gunakan komponen yang sama
+    meta: {
+      title: "Edit Anggota",
+      layout: "DashboardLayout",
+      requiresAuth: true,
+    },
+  },
+  {
     path: "/pengurus",
     name: "Official",
     component: () => import("@/views/KepengurusanView.vue"),
@@ -51,6 +61,19 @@ export default [
       requiresAuth: true,
     },
   },
+  {
+    path: "/kesekretariatan",
+    name: "Kesekretariatan",
+    component: () => import("@/views/KesekretariatanView.vue"),
+    meta: {
+      title: "Kesekretariatan",
+      layout: "DashboardLayout",
+      requiresAuth: true,
+    },
+  },
+
+
+
   //   {
   //     path: "/",
   //     component: () => import("@/layouts/DefaultLayout.vue"),

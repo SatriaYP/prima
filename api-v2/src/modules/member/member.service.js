@@ -5,7 +5,7 @@ class MemberService {
   //   return await prisma.member.findMany();
   // };
 
-  getMembers = async (page = 1, limit = 15) => {
+  getMembers = async (page = 1, limit = 1000000) => {
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
@@ -65,27 +65,55 @@ class MemberService {
    * @param {string} prefix - Kode wilayah (misal "320101")
    * @returns {string|null} Nomor KTA terakhir atau null jika belum ada
    */
-  getLastKtaByPrefix = async (prefix) => {
-    // console.log(prefix);
-    const last = await prisma.member.findFirst({
-      where: { ktaNumber: { startsWith: prefix } },
-      orderBy: { ktaNumber: "desc" },
-      select: { ktaNumber: true },
+  async getLastKtaByPrefix(prefix) {
+    // prefix = "320405" (6 digit)
+    const result = await prisma.member.findFirst({
+      where: {
+        ktaNumber: {
+          startsWith: prefix, // Cari yang dimulai dengan 6 digit
+        },
+      },
+      orderBy: { ktaNumber: 'desc' },
     });
-    return { lastNumber: last?.ktaNumber || null, prefix };
-  };
+
+    return result?.ktaNumber || null;
+  }
 
   /**
    * Cek apakah KTA sudah digunakan
    * @param {string} ktaNumber - Nomor KTA yang ingin dicek
    * @returns {boolean}
    */
-  isKtaExists = async (ktaNumber) => {
-    const count = await prisma.member.count({
-      where: { ktaNumber },
+  // isKtaExists = async (ktaNumber) => {
+  //   const count = await prisma.member.count({
+  //     where: { ktaNumber },
+  //   });
+  //   return { countKTA: count > 0 || null };
+  // };
+  async checkNikUniqueness(nik) {
+    console.log("🔍 [CHECK-NIK] Memeriksa NIK:", nik); // 👈 LOG INI
+
+    if (!nik) {
+      throw new Error('Parameter NIK wajib diisi');
+    }
+
+    if (typeof nik !== 'string' || nik.length !== 16 || !/^\d{16}$/.test(nik)) {
+      throw new Error('NIK harus terdiri dari 16 digit angka');
+    }
+
+    const existingMember = await prisma.member.findUnique({
+      where: { nik },
     });
-    return { countKTA: count > 0 || null };
-  };
+
+    console.log("✅ [CHECK-NIK] Hasil:", existingMember ? "ada" : "tidak ada");
+
+    return {
+      exists: !!existingMember,
+      message: existingMember
+        ? 'NIK sudah terdaftar di sistem'
+        : 'NIK tersedia untuk digunakan',
+    };
+  }
 }
 
 export default new MemberService();

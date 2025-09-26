@@ -67,5 +67,11 @@ app.use((err, req, res, next) => {
 // });
 
 app.listen(port, () => {
-  console.log(`PRIMA API v2 running on http://localhost:${port}`);
+  console.log(`✅ PRIMA API v2 running on http://localhost:${port}`);
+  console.log("🔍 Route yang tersedia:");
+  app._router.stack.forEach((layer) => {
+    if (layer.route) {
+      console.log(`   ${layer.route.path} (${layer.route.methods})`);
+    }
+  });
 });
